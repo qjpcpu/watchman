@@ -34,3 +34,7 @@ func (rc *RouterCli) Write(msg string) error {
 func (rc *RouterCli) Read() (string, error) {
     return readString(rc.conn)
 }
+
+func (rc *RouterCli) Close() error {
+    return rc.conn.Close()
+}

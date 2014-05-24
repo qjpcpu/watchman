@@ -26,4 +26,21 @@ func TestStart(t *testing.T) {
     } else if str != "hello alfred" {
         t.Fatalf("should got %v", "hello alfred")
     }
+    c1.Close()
+    c.Write("end")
+    err = c1.Write("x")
+    if err.Error() != "use of closed network connection" {
+        t.Fatal("the connection should be closed!")
+    }
+    c2, err := NewRouterCli("CLIENT-2")
+    if err != nil {
+        t.Fatal(err)
+    }
+    c2.Write("I'm client-2")
+    if str, err := c.Read(); err != nil {
+        t.Fatal("should read a message")
+    } else if str != "I'm client-2" {
+        t.Fatalf("should got %v", "I'm client-2")
+    }
+
 }

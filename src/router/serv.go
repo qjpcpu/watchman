@@ -6,6 +6,7 @@ import (
     "log"
     "net"
     "os"
+    "strings"
 )
 
 // Router server can route every message to other connections by policy
@@ -86,10 +87,22 @@ func (ss *RouterServ) addClient(c net.Conn) {
             msg["id"] = id
             msg["body"] = body
             ss.center_queue <- msg
+        } else if err.Error() == "EOF" {
+            ss.removeClient(id)
+            log.Printf("Remove %v from router\n", id)
+            break
         }
     }
 }
-func (ss *RouterServ) removeClient(c net.Conn) {
+func (ss *RouterServ) removeClient(id ...string) {
+    ss.lock <- 1
+    for _, key := range id {
+        if c, ok := ss.conns[key]; ok {
+            c.Close()
+            delete(ss.conns, key)
+        }
+    }
+    <-ss.lock
 }
 
 // forword messages to other connections by policy
@@ -97,18 +110,26 @@ func (ss *RouterServ) forwordMsg() {
     for {
         msg := <-ss.center_queue
         if ss.policy != nil {
+            var broken []string
             // lock
             ss.lock <- 1
             for k, v := range ss.conns {
                 if ok := ss.policy(msg["id"], msg["body"], k); ok {
                     err := writeString(v, msg["body"])
                     if err != nil {
-                        log.Println("Forword ", msg["id"], msg["body"], " error. ", err)
+                        log.Printf("%v -> %v [%v] Error:%v\n", msg["id"], k, msg["body"], err)
+                        if strings.HasSuffix(err.Error(), "broken pipe") {
+                            broken = append(broken, k)
+                        }
                     }
                 }
             }
             //unlock
             <-ss.lock
+            // If has broken pipes, remove them
+            if len(broken) > 0 {
+                ss.removeClient(broken...)
+            }
         } else {
             log.Println("Empty forword policy, drop message!")
         }
