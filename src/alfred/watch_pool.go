@@ -7,11 +7,16 @@ import (
     "reflect"
 )
 
+type Emitter interface {
+    Eject(*inotify.Event, string)
+}
+
 // WatcherPool control all the watchers
 type WatcherPool struct {
-    Table  map[string]*alfredWatcher // The Table shows the paths and its according watcher
-    List   []*alfredWatcher          // The List includes all the alfredwatchers
-    Signal chan map[string]string    // The Singal is a channel, used by communication
+    Table   map[string]*alfredWatcher // The Table shows the paths and its according watcher
+    List    []*alfredWatcher          // The List includes all the alfredwatchers
+    Signal  chan map[string]string    // The Singal is a channel, used by communication
+    emitter Emitter
 }
 
 // Initialize a watch pool, this is a private package function
@@ -20,6 +25,7 @@ func initPool() *WatcherPool {
         make(map[string]*alfredWatcher),
         []*alfredWatcher{},
         make(chan map[string]string),
+        nil,
     }
 }
 
@@ -77,7 +83,7 @@ func (wp *WatcherPool) Dettach(path string) error {
 }
 
 func (wp *WatcherPool) GetDefaultPaths() []string {
-    return []string{"/tmp", "/home/jason/", "/home/jason/tmp/"}
+    return []string{"/tmp", "/home/work", "/home/work/tmp/"}
 }
 func (wp *WatcherPool) schedule() {
     var cases []reflect.SelectCase
@@ -98,15 +104,26 @@ func (wp *WatcherPool) schedule() {
             flush = true
         } else {
             ev := value.Interface().(*inotify.Event)
-            log.Println(ev)
+            if wp.emitter != nil {
+                go wp.emitter.Eject(ev, "")
+            }
         }
     }
 }
 func (wp *WatcherPool) handleMessage(msg map[string]string) {
+    var err error
     if path := msg["PATH"]; msg["ACTION"] == "ADD" {
-        wp.Attach(path)
+        err = wp.Attach(path)
     } else if msg["ACTION"] == "REMOVE" {
-        wp.Dettach(path)
+        err = wp.Dettach(path)
+    }
+    if wp.emitter == nil {
+        return
+    }
+    if err != nil {
+        go wp.emitter.Eject(nil, "FATAL:"+err.Error())
+    } else {
+        go wp.emitter.Eject(nil, "SUCCESS:OK!")
     }
 
 }

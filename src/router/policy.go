@@ -3,7 +3,7 @@ package router
 const SYS_ID = "_alfred_"
 
 // default policy
-func defaultPolicy(from_id, body, to_id string) bool {
+func DefaultPolicy(from_id, body, to_id string) bool {
     if from_id == to_id {
         return false
     }

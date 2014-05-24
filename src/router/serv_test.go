@@ -5,7 +5,7 @@ import (
 )
 
 func TestStart(t *testing.T) {
-    Start(defaultPolicy)
+    Start(DefaultPolicy)
     c, err := NewRouterCli(SYS_ID)
     if err != nil {
         t.Fatal(err)
