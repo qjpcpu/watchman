@@ -13,6 +13,7 @@ type Watchman struct {
     client *router.RouterCli
 }
 
+// Initialize a new watchman
 func NewWatchman() (*Watchman, error) {
     c, err := router.NewRouterCli(strconv.Itoa(time.Now().Nanosecond()))
     if err != nil {
@@ -20,6 +21,8 @@ func NewWatchman() (*Watchman, error) {
     }
     return &Watchman{make(map[string]uint32), c}, nil
 }
+
+// Add a file path to watch list, specify the events as you need
 func (man *Watchman) WatchPath(path string, events uint32) error {
     if _, ok := man.paths[path]; ok {
         man.paths[path] = events & IN_ALL_EVENTS
@@ -39,6 +42,8 @@ func (man *Watchman) WatchPath(path string, events uint32) error {
     man.paths[path] = events & IN_ALL_EVENTS
     return nil
 }
+
+// Stop watching a path
 func (man *Watchman) ForgetPath(path string) error {
     if _, ok := man.paths[path]; !ok {
         return nil
@@ -57,6 +62,8 @@ func (man *Watchman) ForgetPath(path string) error {
     delete(man.paths, path)
     return nil
 }
+
+// Fetch an event of watching list, if there's no event available the function would blocked
 func (man *Watchman) PullEvent() (router.Message, error) {
     raw, err := man.client.Read()
     if err != nil {
@@ -78,6 +85,8 @@ func (man *Watchman) PullEvent() (router.Message, error) {
     m.Event = m.Event & IN_ALL_EVENTS & man.paths[fn]
     return m, nil
 }
+
+// Get all watching files
 func (man *Watchman) CheckPathList() []string {
     list := make([]string, len(man.paths))
     i := 0
@@ -87,6 +96,8 @@ func (man *Watchman) CheckPathList() []string {
     }
     return list
 }
+
+// Stop watching and release resources
 func (man *Watchman) Release() {
     man.client.Close()
 }
