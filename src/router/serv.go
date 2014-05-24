@@ -80,8 +80,8 @@ func (ss *RouterServ) addClient(c net.Conn) {
         ss.conns[id] = c
         <-ss.lock
     }
-    msg := make(map[string]string)
     for {
+        msg := make(map[string]string)
         body, err := readString(c)
         if err == nil {
             msg["id"] = id

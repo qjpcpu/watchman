@@ -43,7 +43,7 @@ func (wp *WatcherPool) FileList() []string {
 
 // Pick up a watcher whose listen list is not full, then  add the path to its list
 func (wp *WatcherPool) Attach(path string) error {
-    if _, ok := wp.Table["path"]; ok {
+    if _, ok := wp.Table[path]; ok {
         return nil
     }
     var w *alfredWatcher
@@ -70,21 +70,22 @@ func (wp *WatcherPool) Attach(path string) error {
     return nil
 }
 func (wp *WatcherPool) Dettach(path string) error {
-    if w, ok := wp.Table["path"]; !ok {
-        log.Println(path + " has not been watched.")
+    if w, ok := wp.Table[path]; !ok {
         return nil
     } else {
         err := w.RemoveWatch(path)
         if err != nil {
+            log.Println(err)
             return err
         }
         delete(wp.Table, path)
     }
+    log.Printf("Remove %v from watching list.\n", path)
     return nil
 }
 
 func (wp *WatcherPool) GetDefaultPaths() []string {
-    return []string{"/tmp", "/home/work", "/home/work/tmp/"}
+    return []string{"/tmp", "/home/work/tmp"}
 }
 func (wp *WatcherPool) schedule() {
     var cases []reflect.SelectCase
@@ -113,19 +114,22 @@ func (wp *WatcherPool) schedule() {
 }
 func (wp *WatcherPool) handleMessage(msg map[string]string) {
     var err error
+    var action string
     if path := msg["PATH"]; msg["ACTION"] == "ADD" {
+        action = "+"
         err = wp.Attach(path)
     } else if msg["ACTION"] == "REMOVE" {
-        err = wp.Dettach(path)
+        action = "-"
+        //err = wp.Dettach(path)
     }
     if wp.emitter == nil {
         return
     }
     if err != nil {
-        env := &inotify.Event{0, 0, "FAIL:" + msg["PATH"]}
+        env := &inotify.Event{0, 0, "FAIL:" + action + msg["PATH"]}
         go wp.emitter.Eject(env, time.Now())
     } else {
-        env := &inotify.Event{0, 0, "SUCCESS:" + msg["PATH"]}
+        env := &inotify.Event{0, 0, "SUCCESS:" + action + msg["PATH"]}
         go wp.emitter.Eject(env, time.Now())
     }
 

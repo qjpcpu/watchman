@@ -80,7 +80,7 @@ func (em *Distributer) PullRequest() (map[string]string, error) {
 //    "Name":"FAIL:/path/to/file" or "Name":"SUCCESS:/path/to/file"
 //}
 func (em *Distributer) Eject(env *inotify.Event, t time.Time) {
-    log.Println(env)
+    //log.Println(env)
     if env.Mask == 0x0 {
         m := router.Message{
             Event:    0x0,
@@ -88,12 +88,12 @@ func (em *Distributer) Eject(env *inotify.Event, t time.Time) {
         }
         em.Write(m.String())
     } else {
-        m := router.Message{
+        m1 := router.Message{
             Event:    env.Mask,
             FileName: env.Name,
         }
-        buildMsg(env.Name, &m)
-        em.Write(m.String())
+        buildMsg(env.Name, &m1)
+        em.Write(m1.String())
     }
 }
 

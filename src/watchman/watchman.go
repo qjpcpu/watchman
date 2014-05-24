@@ -1,43 +1,92 @@
 package watchman
 
 import (
-    "code.google.com/p/go.exp/inotify"
     "errors"
+    "router"
+    "strconv"
+    "strings"
+    "time"
 )
 
-type Watchman struct{
-    queue_size int
-    paths map[string]uint
-    queue chan map[string]interface{}
-    watcher *inotify.Watcher
+type Watchman struct {
+    paths  map[string]uint32
+    client *router.RouterCli
 }
 
-func NewWatchman(queuesize int) (*Watchman,error){
-    iw ,err := inotify.NewWatcher()
-    w := &Watchman{
-        queue_size:queuesize,
-        paths:make(map[string]uint,100),
-        watcher:iw,
+func NewWatchman() (*Watchman, error) {
+    c, err := router.NewRouterCli(strconv.Itoa(time.Now().Nanosecond()))
+    if err != nil {
+        return nil, err
     }
-    return w,err
+    return &Watchman{make(map[string]uint32), c}, nil
 }
-func (man *Watchman) WatchPath(path string,events uint)(error){
-    if _,ok:=man.paths[path];ok{
-        return errors.New(path+" has already been watched!")
+func (man *Watchman) WatchPath(path string, events uint32) error {
+    if _, ok := man.paths[path]; ok {
+        man.paths[path] = events & IN_ALL_EVENTS
+        return nil
     }
-    err := man.watcher.AddWatch(path)
-    if err==nil{
-        man.paths[path]=events&inotify.IN_ALL_EVENTS
+    if len(path) > 1 && strings.HasSuffix(path, "/") {
+        path = strings.TrimRight(path, "/")
     }
-    return err
+    m := router.Message{
+        Event:    0x0,
+        FileName: "+" + path,
+    }
+    err := man.client.Write(m.String())
+    if err != nil {
+        return err
+    }
+    man.paths[path] = events & IN_ALL_EVENTS
+    return nil
 }
-func (man *Watchman) ForgetPath(path string)(error){
-    if _,ok:=man.paths[path];!ok{
-        return errors.New(path+" has already been watched!")
+func (man *Watchman) ForgetPath(path string) error {
+    if _, ok := man.paths[path]; !ok {
+        return nil
     }
-    err := man.watcher.AddWatch(path)
-    if err==nil{
-        man.paths[path]=events&inotify.IN_ALL_EVENTS
+    if len(path) > 1 && strings.HasSuffix(path, "/") {
+        path = strings.TrimRight(path, "/")
     }
-    return err
+    m := router.Message{
+        Event:    0x0,
+        FileName: "-" + path,
+    }
+    err := man.client.Write(m.String())
+    if err != nil {
+        return err
+    }
+    delete(man.paths, path)
+    return nil
+}
+func (man *Watchman) PullEvent() (router.Message, error) {
+    raw, err := man.client.Read()
+    if err != nil {
+        return router.Message{}, err
+    }
+    m, err := router.ParseMessage(raw)
+    if err != nil {
+        return router.Message{}, err
+    }
+    fn := ""
+    for name, _ := range man.paths {
+        if strings.HasPrefix(m.FileName, fn) {
+            fn = name
+        }
+    }
+    if m.Event == 0x0 || fn == "" || man.paths[fn]&m.Event == 0 {
+        return router.Message{}, errors.New("You dont' need it.")
+    }
+    m.Event = m.Event & IN_ALL_EVENTS & man.paths[fn]
+    return m, nil
+}
+func (man *Watchman) CheckPathList() []string {
+    list := make([]string, len(man.paths))
+    i := 0
+    for k, _ := range man.paths {
+        list[i] = k
+        i += 1
+    }
+    return list
+}
+func (man *Watchman) Release() {
+    man.client.Close()
 }
