@@ -4,9 +4,14 @@ import (
     "code.google.com/p/go.exp/inotify"
     "errors"
     "log"
+    "os"
     "router"
     "strings"
+    "syscall"
+    "time"
 )
+
+const TimeFormat = "2006-01-02 15:04:05"
 
 var pool *WatcherPool
 
@@ -36,6 +41,12 @@ type Distributer struct {
     *router.RouterCli
 }
 
+// The request message must like:
+//{
+//    "Event":0,
+//    "FileName":"+/path/to/file",  or "FileName":"-/path/to/file"  // +/- means add or remove watch
+//    ....
+//}
 func (em *Distributer) PullRequest() (map[string]string, error) {
     str, err := em.Read()
     if err != nil {
@@ -60,12 +71,42 @@ func (em *Distributer) PullRequest() (map[string]string, error) {
         msg["PATH"] = strings.TrimLeft(m.FileName, "-")
         return msg, nil
     }
-    return nil, errors.New("Shoudn't come here")
+    return nil, errors.New("Shouldn't come here")
 }
-func (em *Distributer) Eject(env *inotify.Event, info string) {
-    if env != nil {
-        log.Println(env)
+
+// The event operation is:
+//{
+//    "Mask":0,
+//    "Name":"FAIL:/path/to/file" or "Name":"SUCCESS:/path/to/file"
+//}
+func (em *Distributer) Eject(env *inotify.Event, t time.Time) {
+    log.Println(env)
+    if env.Mask == 0x0 {
+        m := router.Message{
+            Event:    0x0,
+            FileName: env.Name,
+        }
+        em.Write(m.String())
     } else {
-        log.Println(info)
+        m := router.Message{
+            Event:    env.Mask,
+            FileName: env.Name,
+        }
+        buildMsg(env.Name, &m)
+        em.Write(m.String())
+    }
+}
+
+func buildMsg(path string, msg *router.Message) {
+    if fi, err := os.Stat(path); err == nil {
+        msg.Size = fi.Size()
+        if t, ok := fi.Sys().(*syscall.Stat_t); ok {
+            msg.Inode = t.Ino
+            msg.AccessTime = time.Unix(t.Atim.Unix()).Format(TimeFormat)
+            msg.ChangeTime = time.Unix(t.Ctim.Unix()).Format(TimeFormat)
+            msg.ModifyTime = time.Unix(t.Mtim.Unix()).Format(TimeFormat)
+        } else {
+            log.Println("Can't get %v details by syscall", path)
+        }
     }
 }

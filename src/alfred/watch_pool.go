@@ -5,10 +5,11 @@ import (
     "errors"
     "log"
     "reflect"
+    "time"
 )
 
 type Emitter interface {
-    Eject(*inotify.Event, string)
+    Eject(*inotify.Event, time.Time)
 }
 
 // WatcherPool control all the watchers
@@ -105,7 +106,7 @@ func (wp *WatcherPool) schedule() {
         } else {
             ev := value.Interface().(*inotify.Event)
             if wp.emitter != nil {
-                go wp.emitter.Eject(ev, "")
+                go wp.emitter.Eject(ev, time.Now())
             }
         }
     }
@@ -121,9 +122,11 @@ func (wp *WatcherPool) handleMessage(msg map[string]string) {
         return
     }
     if err != nil {
-        go wp.emitter.Eject(nil, "FATAL:"+err.Error())
+        env := &inotify.Event{0, 0, "FAIL:" + msg["PATH"]}
+        go wp.emitter.Eject(env, time.Now())
     } else {
-        go wp.emitter.Eject(nil, "SUCCESS:OK!")
+        env := &inotify.Event{0, 0, "SUCCESS:" + msg["PATH"]}
+        go wp.emitter.Eject(env, time.Now())
     }
 
 }

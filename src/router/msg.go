@@ -8,7 +8,8 @@ import (
 type Message struct {
     Event                                        uint32
     FileName, AccessTime, ModifyTime, ChangeTime string
-    Inode, Size                                  int
+    Inode                                        uint64
+    Size                                         int64
 }
 
 func ParseMessage(content string) (Message, error) {
