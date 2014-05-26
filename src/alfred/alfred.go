@@ -19,8 +19,8 @@ func init() {
     pool = initPool()
     pool.boot()
     // Start router
-    router.Start(router.DefaultPolicy)
-    cli, err := router.NewRouterCli(router.SYS_ID)
+    router.Start(router.DefaultBuilder())
+    cli, err := router.NewRouterCli(router.SYS_ID, router.DefaultBuilder().SocketFunc)
     if err != nil {
         log.Fatalln(err)
     }

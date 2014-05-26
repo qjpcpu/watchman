@@ -15,7 +15,7 @@ type Watchman struct {
 
 // Initialize a new watchman
 func NewWatchman() (*Watchman, error) {
-    c, err := router.NewRouterCli(strconv.Itoa(time.Now().Nanosecond()))
+    c, err := router.NewRouterCli(strconv.Itoa(time.Now().Nanosecond()), router.DefaultBuilder().SocketFunc)
     if err != nil {
         return nil, err
     }

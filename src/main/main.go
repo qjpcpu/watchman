@@ -18,11 +18,12 @@ func createWatcher() {
         log.Println(err)
     }
     go func() {
-        for {
+        for i := 0; i < 3; i++ {
             if m, err := man.PullEvent(); err == nil {
                 log.Println(m)
             }
         }
+        man.Release()
     }()
     //if err = man.ForgetPath("/home/work/repository/watchman/src/watchman"); err != nil {
     //    log.Println(err)

@@ -5,12 +5,12 @@ import (
 )
 
 func TestStart(t *testing.T) {
-    Start(DefaultPolicy)
-    c, err := NewRouterCli(SYS_ID)
+    Start(DefaultBuilder())
+    c, err := NewRouterCli(SYS_ID, defaultSocketFunc)
     if err != nil {
         t.Fatal(err)
     }
-    c1, err := NewRouterCli("/")
+    c1, err := NewRouterCli("/", defaultSocketFunc)
     if err != nil {
         t.Fatal(err)
     }
@@ -32,7 +32,7 @@ func TestStart(t *testing.T) {
     if err.Error() != "use of closed network connection" {
         t.Fatal("the connection should be closed!")
     }
-    c2, err := NewRouterCli("CLIENT-2")
+    c2, err := NewRouterCli("CLIENT-2", defaultSocketFunc)
     if err != nil {
         t.Fatal(err)
     }

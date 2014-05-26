@@ -12,15 +12,27 @@ import (
 // Router server can route every message to other connections by policy
 type RouterServ struct {
     conns        map[string]net.Conn
-    policy       func(string, string, string) bool
+    policy       ForwardPolicy
     center_queue chan map[string]string
     lock         chan int
     listener     net.Listener
 }
 
+// Forward policy
+type ForwardPolicy func(id, body, toid string) bool
+
+// Get the unix socket path
+type SocketPath func() string
+
+// Contains forwrd policy and socket path getter
+type Builder struct {
+    ForwardFunc ForwardPolicy
+    SocketFunc  SocketPath
+}
+
 // Accept new connection and add to server's client connections
 func (ss *RouterServ) serv() {
-    go ss.forwordMsg()
+    go ss.forwardMsg()
     for {
         fd, err := ss.listener.Accept()
         if err != nil {
@@ -105,8 +117,8 @@ func (ss *RouterServ) removeClient(id ...string) {
     <-ss.lock
 }
 
-// forword messages to other connections by policy
-func (ss *RouterServ) forwordMsg() {
+// forward messages to other connections by policy
+func (ss *RouterServ) forwardMsg() {
     for {
         msg := <-ss.center_queue
         if ss.policy != nil {
@@ -131,17 +143,14 @@ func (ss *RouterServ) forwordMsg() {
                 ss.removeClient(broken...)
             }
         } else {
-            log.Println("Empty forword policy, drop message!")
+            log.Println("Empty forward policy, drop message!")
         }
     }
 }
 
-func socketpath() string {
-    return "/tmp/router.socket"
-}
-func Start(forword func(id, body, toid string) bool) (*RouterServ, error) {
-    path := socketpath()
-    serv := &RouterServ{make(map[string]net.Conn), forword, make(chan map[string]string, 100), make(chan int, 1), nil}
+func Start(builder Builder) (*RouterServ, error) {
+    path := builder.SocketFunc()
+    serv := &RouterServ{make(map[string]net.Conn), builder.ForwardFunc, make(chan map[string]string, 100), make(chan int, 1), nil}
     os.Remove(path)
     l, err := net.Listen("unix", path)
     if err != nil {

@@ -9,11 +9,11 @@ type RouterCli struct {
     id   string
 }
 
-func NewRouterCli(uid string) (*RouterCli, error) {
+func NewRouterCli(uid string, fsocket SocketPath) (*RouterCli, error) {
     cli := &RouterCli{
         id: uid,
     }
-    c, err := net.Dial("unix", socketpath())
+    c, err := net.Dial("unix", fsocket())
     if err != nil {
         return cli, err
     }
