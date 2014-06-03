@@ -18,9 +18,11 @@ func createWatcher() {
         log.Println(err)
     }
     go func() {
-        for i := 0; i < 3; i++ {
+        for {
             if m, err := man.PullEvent(); err == nil {
                 log.Println(m)
+            } else if err.Error() == "SYSTEM" {
+                log.Println(m.FileName)
             }
         }
         man.Release()

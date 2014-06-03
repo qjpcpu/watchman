@@ -2,6 +2,7 @@ package watchman
 
 import (
     "errors"
+    "path/filepath"
     "router"
     "strconv"
     "strings"
@@ -75,12 +76,16 @@ func (man *Watchman) PullEvent() (router.Message, error) {
     }
     fn := ""
     for name, _ := range man.paths {
-        if strings.HasPrefix(m.FileName, fn) {
+        if inWatch(m.FileName, name) {
             fn = name
+            break
         }
     }
+    if _, ok := man.paths[fn]; ok && m.Event == 0x0 {
+        return m, errors.New("SYSTEM")
+    }
     if m.Event == 0x0 || fn == "" || man.paths[fn]&m.Event == 0 {
-        return router.Message{}, errors.New("You dont' need it.")
+        return m, errors.New("You dont' need it.")
     }
     m.Event = m.Event & IN_ALL_EVENTS & man.paths[fn]
     return m, nil
@@ -100,4 +105,29 @@ func (man *Watchman) CheckPathList() []string {
 // Stop watching and release resources
 func (man *Watchman) Release() {
     man.client.Close()
+}
+func inWatch(event_path, fn string) bool {
+    event_fn := event_path
+    if strings.HasPrefix(event_path, "SUCCESS:") {
+        event_fn = event_path[9:]
+    } else if strings.HasPrefix(event_path, "FAIL:") {
+        event_fn = event_path[6:]
+    }
+    if strings.HasSuffix(event_fn, "/") {
+        event_fn = strings.TrimRight(event_fn, "/")
+    }
+    if strings.HasSuffix(fn, "/") {
+        fn = strings.TrimRight(fn, "/")
+    }
+    if event_fn == fn {
+        return true
+    }
+    dir, _ := filepath.Split(event_fn)
+    if strings.HasSuffix(dir, "/") {
+        dir = strings.TrimRight(dir, "/")
+    }
+    if fn == dir {
+        return true
+    }
+    return false
 }

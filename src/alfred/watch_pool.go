@@ -85,7 +85,7 @@ func (wp *WatcherPool) Dettach(path string) error {
 }
 
 func (wp *WatcherPool) GetDefaultPaths() []string {
-    return []string{"/tmp", "/home/work/tmp"}
+    return []string{}
 }
 func (wp *WatcherPool) schedule() {
     var cases []reflect.SelectCase
