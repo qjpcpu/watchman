@@ -80,7 +80,7 @@ func (em *Distributer) PullRequest() (map[string]string, error) {
 //    "Name":"FAIL:/path/to/file" or "Name":"SUCCESS:/path/to/file"
 //}
 func (em *Distributer) Eject(env *inotify.Event, t time.Time) {
-    //log.Println(env)
+    //log.Println("alfred.go", env)
     if env.Mask == 0x0 {
         m := router.Message{
             Event:    0x0,

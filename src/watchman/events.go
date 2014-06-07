@@ -1,6 +1,7 @@
 package watchman
 
 import (
+    "strings"
     "syscall"
 )
 
@@ -34,3 +35,65 @@ const (
     IN_Q_OVERFLOW uint32 = syscall.IN_Q_OVERFLOW
     IN_UNMOUNT    uint32 = syscall.IN_UNMOUNT
 )
+
+func String(events uint32) string {
+    events = events & IN_ALL_EVENTS
+    list := ""
+    if events == 0x0 {
+        return list
+    }
+    if events&IN_ACCESS != 0x0 {
+        list += "IN_ACCESS "
+    }
+    if events&IN_ATTRIB != 0x0 {
+        list += "IN_ATTRIB "
+    }
+    if events&IN_CLOSE != 0x0 {
+        if events&IN_CLOSE_NOWRITE != 0x0 {
+            list += "IN_CLOSE_NOWRITE "
+        } else if events&IN_CLOSE_WRITE != 0x0 {
+            list += "IN_CLOSE_WRITE "
+        } else {
+            list += "IN_CLOSE "
+        }
+    }
+    if events&IN_CREATE != 0x0 {
+        list += "IN_CREATE "
+    }
+    if events&IN_DELETE != 0x0 {
+        list += "IN_DELETE "
+    }
+    if events&IN_DELETE_SELF != 0x0 {
+        list += "IN_DELETE_SELF "
+    }
+    if events&IN_MODIFY != 0x0 {
+        list += "IN_MODIFY "
+    }
+    if events&IN_OPEN != 0x0 {
+        list += "IN_OPEN "
+    }
+    if events&IN_MOVE != 0x0 {
+        if events&IN_MOVED_FROM != 0x0 {
+            list += "IN_MOVED_FROM "
+        } else if events&IN_MOVED_TO != 0x0 {
+            list += "IN_MOVED_TO "
+        } else if events&IN_MOVE_SELF != 0x0 {
+            list += "IN_MOVE_SELF "
+        } else {
+            list += "IN_MOVE "
+        }
+    }
+    if events&IN_ISDIR != 0x0 {
+        list += "IN_ISDIR "
+    }
+    if events&IN_IGNORED != 0x0 {
+        list += "IN_IGNORED "
+    }
+    if events&IN_Q_OVERFLOW != 0x0 {
+        list += "IN_Q_OVERFLOW "
+    }
+    if events&IN_UNMOUNT != 0x0 {
+        list += "IN_UNMOUNT "
+    }
+    return strings.TrimRight(list, " ")
+}

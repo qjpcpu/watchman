@@ -11,11 +11,9 @@ import (
 
 // Router server can route every message to other connections by policy
 type RouterServ struct {
-    conns        map[string]net.Conn
-    policy       ForwardPolicy
-    center_queue chan map[string]string
-    lock         chan int
-    listener     net.Listener
+    conns    map[string]net.Conn
+    policy   ForwardPolicy
+    listener net.Listener
 }
 
 // Forward policy
@@ -32,7 +30,6 @@ type Builder struct {
 
 // Accept new connection and add to server's client connections
 func (ss *RouterServ) serv() {
-    go ss.forwardMsg()
     for {
         fd, err := ss.listener.Accept()
         if err != nil {
@@ -87,10 +84,8 @@ func (ss *RouterServ) addClient(c net.Conn) {
         c.Close()
         return
     } else {
-        ss.lock <- 1
         writeString(c, "connected")
         ss.conns[id] = c
-        <-ss.lock
     }
     for {
         msg := make(map[string]string)
@@ -98,7 +93,7 @@ func (ss *RouterServ) addClient(c net.Conn) {
         if err == nil {
             msg["id"] = id
             msg["body"] = body
-            ss.center_queue <- msg
+            ss.forwardMsg(msg)
         } else if err.Error() == "EOF" {
             ss.removeClient(id)
             log.Printf("Remove %v from router\n", id)
@@ -107,50 +102,41 @@ func (ss *RouterServ) addClient(c net.Conn) {
     }
 }
 func (ss *RouterServ) removeClient(id ...string) {
-    ss.lock <- 1
     for _, key := range id {
         if c, ok := ss.conns[key]; ok {
             c.Close()
             delete(ss.conns, key)
         }
     }
-    <-ss.lock
 }
 
 // forward messages to other connections by policy
-func (ss *RouterServ) forwardMsg() {
-    for {
-        msg := <-ss.center_queue
-        if ss.policy != nil {
-            var broken []string
-            // lock
-            ss.lock <- 1
-            for k, v := range ss.conns {
-                if ok := ss.policy(msg["id"], msg["body"], k); ok {
-                    err := writeString(v, msg["body"])
-                    if err != nil {
-                        log.Printf("%v -> %v [%v] Error:%v\n", msg["id"], k, msg["body"], err)
-                        if strings.HasSuffix(err.Error(), "broken pipe") {
-                            broken = append(broken, k)
-                        }
+func (ss *RouterServ) forwardMsg(msg map[string]string) {
+    if ss.policy != nil {
+        var broken []string
+        for k, v := range ss.conns {
+            if ok := ss.policy(msg["id"], msg["body"], k); ok {
+                err := writeString(v, msg["body"])
+                if err != nil {
+                    log.Printf("%v -> %v [%v] Error:%v\n", msg["id"], k, msg["body"], err)
+                    if strings.HasSuffix(err.Error(), "broken pipe") {
+                        broken = append(broken, k)
                     }
                 }
             }
-            //unlock
-            <-ss.lock
-            // If has broken pipes, remove them
-            if len(broken) > 0 {
-                ss.removeClient(broken...)
-            }
-        } else {
-            log.Println("Empty forward policy, drop message!")
         }
+        // If has broken pipes, remove them
+        if len(broken) > 0 {
+            ss.removeClient(broken...)
+        }
+    } else {
+        log.Println("Empty forward policy, drop message!")
     }
 }
 
 func Start(builder Builder) (*RouterServ, error) {
     path := builder.SocketFunc()
-    serv := &RouterServ{make(map[string]net.Conn), builder.ForwardFunc, make(chan map[string]string, 100), make(chan int, 1), nil}
+    serv := &RouterServ{make(map[string]net.Conn), builder.ForwardFunc, nil}
     os.Remove(path)
     l, err := net.Listen("unix", path)
     if err != nil {
