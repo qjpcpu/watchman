@@ -3,7 +3,7 @@ package router
 import (
     "bytes"
     "encoding/binary"
-    "log"
+    . "mlog"
     "net"
     "os"
     "strings"
@@ -33,7 +33,7 @@ func (ss *RouterServ) serv() {
     for {
         fd, err := ss.listener.Accept()
         if err != nil {
-            log.Println(err)
+            Log.Debug(err.Error())
         } else {
             go ss.addClient(fd)
         }
@@ -75,12 +75,12 @@ func readString(c net.Conn) (string, error) {
 func (ss *RouterServ) addClient(c net.Conn) {
     id, err := readString(c)
     if err != nil {
-        log.Println("Handshake error", err)
+        Log.Debug("Handshake error", err)
         c.Close()
         return
     }
     if _, ok := ss.conns[id]; ok {
-        log.Println("id " + id + " already exists!")
+        Log.Debug("id " + id + " already exists!")
         c.Close()
         return
     } else {
@@ -96,7 +96,7 @@ func (ss *RouterServ) addClient(c net.Conn) {
             ss.forwardMsg(msg)
         } else if err.Error() == "EOF" {
             ss.removeClient(id)
-            log.Printf("Remove %v from router\n", id)
+            Log.Debug("Remove %v from router\n", id)
             break
         }
     }
@@ -118,7 +118,7 @@ func (ss *RouterServ) forwardMsg(msg map[string]string) {
             if ok := ss.policy(msg["id"], msg["body"], k); ok {
                 err := writeString(v, msg["body"])
                 if err != nil {
-                    log.Printf("%v -> %v [%v] Error:%v\n", msg["id"], k, msg["body"], err)
+                    Log.Debug("%v -> %v [%v] Error:%v\n", msg["id"], k, msg["body"], err)
                     if strings.HasSuffix(err.Error(), "broken pipe") {
                         broken = append(broken, k)
                     }
@@ -130,7 +130,7 @@ func (ss *RouterServ) forwardMsg(msg map[string]string) {
             ss.removeClient(broken...)
         }
     } else {
-        log.Println("Empty forward policy, drop message!")
+        Log.Debug("Empty forward policy, drop message!")
     }
 }
 
@@ -140,10 +140,10 @@ func Start(builder Builder) (*RouterServ, error) {
     os.Remove(path)
     l, err := net.Listen("unix", path)
     if err != nil {
-        log.Println("start message server err", err)
+        Log.Critical("start message server err", err)
         return serv, err
     } else {
-        log.Println("Message server started!")
+        Log.Info("Message server started!")
         serv.listener = l
     }
     go serv.serv()

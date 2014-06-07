@@ -3,7 +3,7 @@ package alfred
 import (
     "code.google.com/p/go.exp/inotify"
     "errors"
-    "log"
+    . "mlog"
     "os"
     "router"
     "strings"
@@ -22,7 +22,7 @@ func init() {
     router.Start(router.DefaultBuilder())
     cli, err := router.NewRouterCli(router.SYS_ID, router.DefaultBuilder().SocketFunc)
     if err != nil {
-        log.Fatalln(err)
+        Log.Fatal(err)
     }
     // Biding emitter
     distributer := &Distributer{cli}
@@ -50,12 +50,12 @@ type Distributer struct {
 func (em *Distributer) PullRequest() (map[string]string, error) {
     str, err := em.Read()
     if err != nil {
-        log.Println("Pull request:", err)
+        Log.Debug("Pull request:", err)
         return nil, err
     }
     m, err := router.ParseMessage(str)
     if err != nil {
-        log.Println("Pull request:", err)
+        Log.Debug("Pull request:", err)
         return nil, err
     }
     if m.Event != 0 {
@@ -80,7 +80,7 @@ func (em *Distributer) PullRequest() (map[string]string, error) {
 //    "Name":"FAIL:/path/to/file" or "Name":"SUCCESS:/path/to/file"
 //}
 func (em *Distributer) Eject(env *inotify.Event, t time.Time) {
-    //log.Println("alfred.go", env)
+    //Log.Debug("alfred.go", env)
     if env.Mask == 0x0 {
         m := router.Message{
             Event:    0x0,
@@ -106,7 +106,7 @@ func buildMsg(path string, msg *router.Message) {
             msg.ChangeTime = time.Unix(t.Ctim.Unix()).Format(TimeFormat)
             msg.ModifyTime = time.Unix(t.Mtim.Unix()).Format(TimeFormat)
         } else {
-            log.Println("Can't get %v details by syscall", path)
+            Log.Debug("Can't get %v details by syscall", path)
         }
     }
 }

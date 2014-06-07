@@ -3,7 +3,7 @@ package alfred
 import (
     "code.google.com/p/go.exp/inotify"
     "errors"
-    "log"
+    . "mlog"
     "reflect"
     "time"
 )
@@ -59,14 +59,14 @@ func (wp *WatcherPool) Attach(path string) error {
         }
         w = newAlfredWatcher()
         wp.List = append(wp.List, w)
-        log.Println("Create new watcher for ", path)
+        Log.Debug("Create new watcher for ", path)
     }
     if err := w.AddWatch(path); err != nil {
         return err
     } else {
         wp.Table[path] = w
     }
-    log.Println(path + " is under watching...")
+    Log.Debug(path + " is under watching...")
     return nil
 }
 func (wp *WatcherPool) Dettach(path string) error {
@@ -75,12 +75,12 @@ func (wp *WatcherPool) Dettach(path string) error {
     } else {
         err := w.RemoveWatch(path)
         if err != nil {
-            log.Println(err)
+            Log.Debug(err.Error())
             return err
         }
         delete(wp.Table, path)
     }
-    log.Printf("Remove %v from watching list.\n", path)
+    Log.Debug("Remove %v from watching list.\n", path)
     return nil
 }
 
@@ -137,7 +137,7 @@ func (wp *WatcherPool) handleMessage(msg map[string]string) {
 func (wp *WatcherPool) boot() {
     for _, fn := range wp.GetDefaultPaths() {
         if err := wp.Attach(fn); err != nil {
-            log.Println(err)
+            Log.Debug(err.Error())
         }
     }
     go wp.schedule()
