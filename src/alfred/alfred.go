@@ -15,7 +15,7 @@ const TimeFormat = "2006-01-02 15:04:05"
 
 var pool *WatcherPool
 
-func init() {
+func Boot() {
     pool = initPool()
     pool.boot()
     // Start router
@@ -35,6 +35,10 @@ func init() {
             }
         }
     }()
+}
+func Shutdown() {
+    pool.shutdown()
+    Log.Info("Alfred Shutdown.")
 }
 
 type Distributer struct {

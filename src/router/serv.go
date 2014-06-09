@@ -33,7 +33,7 @@ func (ss *RouterServ) serv() {
     for {
         fd, err := ss.listener.Accept()
         if err != nil {
-            Log.Debug(err.Error())
+            Log.Error(err)
         } else {
             go ss.addClient(fd)
         }
@@ -96,7 +96,7 @@ func (ss *RouterServ) addClient(c net.Conn) {
             ss.forwardMsg(msg)
         } else if err.Error() == "EOF" {
             ss.removeClient(id)
-            Log.Debug("Remove %v from router\n", id)
+            Log.Debugf("Remove %v from router", id)
             break
         }
     }
@@ -118,7 +118,7 @@ func (ss *RouterServ) forwardMsg(msg map[string]string) {
             if ok := ss.policy(msg["id"], msg["body"], k); ok {
                 err := writeString(v, msg["body"])
                 if err != nil {
-                    Log.Debug("%v -> %v [%v] Error:%v\n", msg["id"], k, msg["body"], err)
+                    Log.Debugf("%v -> %v [%v] Error:%v", msg["id"], k, msg["body"], err)
                     if strings.HasSuffix(err.Error(), "broken pipe") {
                         broken = append(broken, k)
                     }

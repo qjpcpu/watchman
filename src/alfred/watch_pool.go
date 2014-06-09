@@ -18,6 +18,7 @@ type WatcherPool struct {
     List    []*alfredWatcher          // The List includes all the alfredwatchers
     Signal  chan map[string]string    // The Singal is a channel, used by communication
     emitter Emitter
+    counter map[string]int
 }
 
 // Initialize a watch pool, this is a private package function
@@ -27,6 +28,7 @@ func initPool() *WatcherPool {
         []*alfredWatcher{},
         make(chan map[string]string),
         nil,
+        make(map[string]int),
     }
 }
 
@@ -44,6 +46,7 @@ func (wp *WatcherPool) FileList() []string {
 // Pick up a watcher whose listen list is not full, then  add the path to its list
 func (wp *WatcherPool) Attach(path string) error {
     if _, ok := wp.Table[path]; ok {
+        wp.counter[path] += 1
         return nil
     }
     var w *alfredWatcher
@@ -65,6 +68,7 @@ func (wp *WatcherPool) Attach(path string) error {
         return err
     } else {
         wp.Table[path] = w
+        wp.counter[path] += 1
     }
     Log.Debug(path + " is under watching...")
     return nil
@@ -73,14 +77,20 @@ func (wp *WatcherPool) Dettach(path string) error {
     if w, ok := wp.Table[path]; !ok {
         return nil
     } else {
-        err := w.RemoveWatch(path)
-        if err != nil {
-            Log.Debug(err.Error())
-            return err
+        wp.counter[path] -= 1
+        if wp.counter[path] == 0 {
+            err := w.RemoveWatch(path)
+            if err != nil {
+                Log.Debug(err.Error())
+                return err
+            }
+            delete(wp.Table, path)
+            delete(wp.counter, path)
+            Log.Debugf("Remove %v from watching list.", path)
+        } else {
+            Log.Debugf("Remove a reference to %v from watching list.", path)
         }
-        delete(wp.Table, path)
     }
-    Log.Debug("Remove %v from watching list.\n", path)
     return nil
 }
 
@@ -120,7 +130,7 @@ func (wp *WatcherPool) handleMessage(msg map[string]string) {
         err = wp.Attach(path)
     } else if msg["ACTION"] == "REMOVE" {
         action = "-"
-        //err = wp.Dettach(path)
+        err = wp.Dettach(path)
     }
     if wp.emitter == nil {
         return
@@ -141,4 +151,12 @@ func (wp *WatcherPool) boot() {
         }
     }
     go wp.schedule()
+}
+func (wp *WatcherPool) shutdown() {
+    for fn, _ := range wp.Table {
+        wp.Dettach(fn)
+    }
+    for _, w := range wp.List {
+        w.Release()
+    }
 }
