@@ -35,10 +35,11 @@ func Boot() {
             }
         }
     }()
+    Log.Debug("Alfred Startup.")
 }
 func Shutdown() {
     pool.shutdown()
-    Log.Info("Alfred Shutdown.")
+    Log.Debug("Alfred Shutdown.")
 }
 
 type Distributer struct {

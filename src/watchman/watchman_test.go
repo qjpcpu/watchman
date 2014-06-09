@@ -1,12 +1,13 @@
 package watchman
 
 import (
-    _ "alfred"
+    "alfred"
     "os"
     "testing"
 )
 
 func TestWatchman(t *testing.T) {
+    alfred.Boot()
     man, err := NewWatchman()
     if err != nil {
         t.Fatal(err)
@@ -39,4 +40,5 @@ func TestWatchman(t *testing.T) {
         t.Fatal(err)
     }
     man.Release()
+    alfred.Shutdown()
 }
