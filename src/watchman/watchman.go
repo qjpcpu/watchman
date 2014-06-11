@@ -16,10 +16,7 @@ type Watchman struct {
 
 // Initialize a new watchman
 func NewWatchman() (*Watchman, error) {
-    c, err := router.NewRouterCli(strconv.Itoa(time.Now().Nanosecond()), router.DefaultBuilder().SocketFunc)
-    if err != nil {
-        return nil, err
-    }
+    c := router.NewRouterCli(strconv.Itoa(time.Now().Nanosecond()), router.DefaultBuildClient)
     return &Watchman{make(map[string]uint32), c}, nil
 }
 
@@ -36,10 +33,11 @@ func (man *Watchman) WatchPath(path string, events uint32) error {
         Event:    0x0,
         FileName: "+" + path,
     }
-    err := man.client.Write(m.String())
+    err := man.client.Write(router.SYS_ID, m.String())
     if err != nil {
         return err
     }
+    man.client.Subscribe(path)
     man.paths[path] = events & IN_ALL_EVENTS
     return nil
 }
@@ -56,10 +54,11 @@ func (man *Watchman) ForgetPath(path string) error {
         Event:    0x0,
         FileName: "-" + path,
     }
-    err := man.client.Write(m.String())
+    err := man.client.Write(router.SYS_ID, m.String())
     if err != nil {
         return err
     }
+    man.client.Unsubscribe(path)
     delete(man.paths, path)
     return nil
 }

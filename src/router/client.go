@@ -1,40 +1,58 @@
 package router
 
 import (
-    "net"
+    "errors"
+    "gopkg.in/redis.v1"
 )
 
+const SYS_ID = "_alfred_"
+
 type RouterCli struct {
-    conn net.Conn
-    id   string
+    id     string
+    client *redis.Client
+    pubsub *redis.PubSub
 }
 
-func NewRouterCli(uid string, fsocket SocketPath) (*RouterCli, error) {
+type BuildClient func() *redis.Client
+
+func DefaultBuildClient() *redis.Client {
+    return redis.NewTCPClient(&redis.Options{
+        Addr: ":6379",
+    })
+}
+
+func NewRouterCli(uid string, builder BuildClient) *RouterCli {
     cli := &RouterCli{
-        id: uid,
+        id:     uid,
+        client: builder(),
     }
-    c, err := net.Dial("unix", fsocket())
-    if err != nil {
-        return cli, err
-    }
-    // Handshake
-    if err := writeString(c, uid); err != nil {
-        return cli, err
-    }
-    if res, err := readString(c); err != nil || res != "connected" {
-        return cli, err
-    }
-    cli.conn = c
-    return cli, nil
+    cli.pubsub = cli.client.PubSub()
+    return cli
 }
 
-func (rc *RouterCli) Write(msg string) error {
-    return writeString(rc.conn, msg)
+func (rc *RouterCli) Write(to, msg string) error {
+    pub := rc.client.Publish(to, msg)
+    return pub.Err()
+}
+func (rc *RouterCli) Subscribe(path string) {
+    rc.pubsub.Subscribe(path)
+}
+func (rc *RouterCli) Unsubscribe(path string) {
+    rc.pubsub.Unsubscribe(path)
 }
 func (rc *RouterCli) Read() (string, error) {
-    return readString(rc.conn)
+    msg, err := rc.pubsub.Receive()
+    if err != nil {
+        return "", err
+    }
+    payload, ok := msg.(*redis.Message)
+    if !ok {
+        return "", errors.New("Not a message.")
+    }
+    return payload.Payload, nil
 }
 
 func (rc *RouterCli) Close() error {
-    return rc.conn.Close()
+    rc.pubsub.Close()
+    return rc.client.Close()
 }

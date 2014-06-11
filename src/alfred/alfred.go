@@ -19,11 +19,8 @@ func Boot() {
     pool = initPool()
     pool.boot()
     // Start router
-    router.Start(router.DefaultBuilder())
-    cli, err := router.NewRouterCli(router.SYS_ID, router.DefaultBuilder().SocketFunc)
-    if err != nil {
-        Log.Fatal(err)
-    }
+    cli := router.NewRouterCli(router.SYS_ID, router.DefaultBuildClient)
+    cli.Subscribe(router.SYS_ID)
     // Biding emitter
     distributer := &Distributer{cli}
     pool.emitter = distributer
@@ -85,20 +82,26 @@ func (em *Distributer) PullRequest() (map[string]string, error) {
 //    "Name":"FAIL:/path/to/file" or "Name":"SUCCESS:/path/to/file"
 //}
 func (em *Distributer) Eject(env *inotify.Event, t time.Time) {
-    //Log.Debug("alfred.go", env)
+    var to string
+    for k, _ := range pool.Table {
+        if inWatch(env.Name, k) {
+            to = k
+            break
+        }
+    }
     if env.Mask == 0x0 {
         m := router.Message{
             Event:    0x0,
             FileName: env.Name,
         }
-        em.Write(m.String())
+        go em.Write(to, m.String())
     } else {
         m1 := router.Message{
             Event:    env.Mask,
             FileName: env.Name,
         }
         buildMsg(env.Name, &m1)
-        em.Write(m1.String())
+        go em.Write(to, m1.String())
     }
 }
 

@@ -4,7 +4,9 @@ import (
     "code.google.com/p/go.exp/inotify"
     "errors"
     . "mlog"
+    "path/filepath"
     "reflect"
+    "strings"
     "time"
 )
 
@@ -159,4 +161,29 @@ func (wp *WatcherPool) shutdown() {
     for _, w := range wp.List {
         w.Release()
     }
+}
+func inWatch(event_path, fn string) bool {
+    event_fn := event_path
+    if strings.HasPrefix(event_path, "SUCCESS:") {
+        event_fn = event_path[9:]
+    } else if strings.HasPrefix(event_path, "FAIL:") {
+        event_fn = event_path[6:]
+    }
+    if strings.HasSuffix(event_fn, "/") {
+        event_fn = strings.TrimRight(event_fn, "/")
+    }
+    if strings.HasSuffix(fn, "/") {
+        fn = strings.TrimRight(fn, "/")
+    }
+    if event_fn == fn {
+        return true
+    }
+    dir, _ := filepath.Split(event_fn)
+    if strings.HasSuffix(dir, "/") {
+        dir = strings.TrimRight(dir, "/")
+    }
+    if fn == dir {
+        return true
+    }
+    return false
 }

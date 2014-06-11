@@ -18,7 +18,7 @@ func bigWatch() {
     list := utils.Walk("/home", 100)
     list = list[0:len(list)]
     for _, f := range list {
-        if err = man.WatchPath(f, watchman.IN_ALL_EVENTS); err != nil {
+        if err = man.WatchPath(f, watchman.IN_CREATE); err != nil {
             Log.Info("ERROR", err)
         }
     }
