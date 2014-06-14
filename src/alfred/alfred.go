@@ -3,6 +3,7 @@ package alfred
 import (
     "code.google.com/p/go.exp/inotify"
     "errors"
+    "fmt"
     . "mlog"
     "os"
     "router"
@@ -22,7 +23,7 @@ func Boot() {
     cli := router.NewRouterCli(router.SYS_ID, router.DefaultBuildClient)
     cli.Subscribe(router.SYS_ID)
     // Biding emitter
-    distributer := &Distributer{cli}
+    distributer := &Distributer{cli, make(map[string]time.Time)}
     pool.emitter = distributer
     // Start receive from router
     go func() {
@@ -41,6 +42,7 @@ func Shutdown() {
 
 type Distributer struct {
     *router.RouterCli
+    memo map[string]time.Time
 }
 
 // The request message must like:
@@ -76,6 +78,25 @@ func (em *Distributer) PullRequest() (map[string]string, error) {
     return nil, errors.New("Shouldn't come here")
 }
 
+func (em *Distributer) passby(env *inotify.Event, t time.Time) (can_eject bool) {
+    key := fmt.Sprintf("%s:%v", env.Name, env.Mask)
+    if last, ok := em.memo[key]; !ok {
+        em.memo[key] = t
+        can_eject = true
+    } else {
+        if t.Before(last.Add(time.Second)) {
+            can_eject = false
+        } else {
+            can_eject = true
+            em.memo[key] = t
+        }
+    }
+    if env.Mask == 0x0 {
+        can_eject = true
+    }
+    return
+}
+
 // The event operation is:
 //{
 //    "Mask":0,
@@ -97,7 +118,9 @@ func (em *Distributer) Eject(env *inotify.Event, t time.Time) {
     }
     to_list := pool.triggerPaths(env.Name)
     for _, to := range to_list {
-        em.Write(to, m.String())
+        if em.passby(env, t) {
+            em.Write(to, m.String())
+        }
     }
 }
 
