@@ -97,7 +97,7 @@ func (em *Distributer) Eject(env *inotify.Event, t time.Time) {
     }
     to_list := pool.triggerPaths(env.Name)
     for _, to := range to_list {
-        go em.Write(to, m.String())
+        em.Write(to, m.String())
     }
 }
 
