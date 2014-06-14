@@ -162,7 +162,7 @@ func (wp *WatcherPool) shutdown() {
         w.Release()
     }
 }
-func inWatch(event_path, fn string) bool {
+func (wp *WatcherPool) triggerPaths(event_path string) (pkeys []string) {
     event_fn := event_path
     if strings.HasPrefix(event_path, "SUCCESS:") {
         event_fn = event_path[9:]
@@ -172,18 +172,15 @@ func inWatch(event_path, fn string) bool {
     if strings.HasSuffix(event_fn, "/") {
         event_fn = strings.TrimRight(event_fn, "/")
     }
-    if strings.HasSuffix(fn, "/") {
-        fn = strings.TrimRight(fn, "/")
-    }
-    if event_fn == fn {
-        return true
+    if _, ok := wp.Table[event_fn]; ok {
+        pkeys = append(pkeys, event_fn)
     }
     dir, _ := filepath.Split(event_fn)
     if strings.HasSuffix(dir, "/") {
         dir = strings.TrimRight(dir, "/")
     }
-    if fn == dir {
-        return true
+    if _, ok := wp.Table[dir]; ok {
+        pkeys = append(pkeys, dir)
     }
-    return false
+    return
 }

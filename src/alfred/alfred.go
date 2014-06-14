@@ -82,26 +82,22 @@ func (em *Distributer) PullRequest() (map[string]string, error) {
 //    "Name":"FAIL:/path/to/file" or "Name":"SUCCESS:/path/to/file"
 //}
 func (em *Distributer) Eject(env *inotify.Event, t time.Time) {
-    var to string
-    for k, _ := range pool.Table {
-        if inWatch(env.Name, k) {
-            to = k
-            break
-        }
-    }
+    var m router.Message
     if env.Mask == 0x0 {
-        m := router.Message{
+        m = router.Message{
             Event:    0x0,
             FileName: env.Name,
         }
-        go em.Write(to, m.String())
     } else {
-        m1 := router.Message{
+        m = router.Message{
             Event:    env.Mask,
             FileName: env.Name,
         }
-        buildMsg(env.Name, &m1)
-        go em.Write(to, m1.String())
+        buildMsg(env.Name, &m)
+    }
+    to_list := pool.triggerPaths(env.Name)
+    for _, to := range to_list {
+        go em.Write(to, m.String())
     }
 }
 
