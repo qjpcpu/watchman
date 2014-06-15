@@ -36,7 +36,7 @@ const (
     IN_UNMOUNT    uint32 = syscall.IN_UNMOUNT
 )
 
-func String(events uint32) string {
+func HumanReadable(events uint32) string {
     events = events & IN_ALL_EVENTS
     list := ""
     if events == 0x0 {
