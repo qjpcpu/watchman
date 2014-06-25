@@ -2,7 +2,9 @@ package router
 
 import (
     "errors"
+    "goconf.googlecode.com/hg"
     "gopkg.in/redis.v1"
+    "utils"
 )
 
 const SYS_ID = "_alfred_"
@@ -16,8 +18,16 @@ type RouterCli struct {
 type BuildClient func() *redis.Client
 
 func DefaultBuildClient() *redis.Client {
+    port := ":6379"
+    if dir, err := utils.ConfDir(); err == nil {
+        if cfg, err := conf.ReadConfigFile(dir + "/main.conf"); err == nil {
+            if p, err := cfg.GetString("default", "redisAddr"); err == nil {
+                port = p
+            }
+        }
+    }
     return redis.NewTCPClient(&redis.Options{
-        Addr: ":6379",
+        Addr: port,
     })
 }
 
