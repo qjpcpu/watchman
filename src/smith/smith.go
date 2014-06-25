@@ -9,7 +9,7 @@ import (
 )
 
 func ScanAbnormal(queue *list.List) {
-    c := time.Tick(1 * time.Second)
+    c := time.Tick(time.Second)
     for _ = range c {
         erase_list := []string{}
         for {
@@ -20,12 +20,12 @@ func ScanAbnormal(queue *list.List) {
                     Log.Debugf("%v is on  white list,pass.", msg.FileName)
                 } else if fromBigFile(msg) {
                     if yes, _ := canErase(msg.FileName); len(yes) > 0 {
-                        Log.Debugf("I will&can kill %s(%s)", msg.FileName, watchman.HumanReadable(msg.Event))
+                        Log.Debugf("I will kill %s(%s)", msg.FileName, watchman.HumanReadable(msg.Event))
                         erase_list = append(erase_list, msg.FileName)
                     }
                 } else if can_del, ok := fromBigDirectory(msg); ok {
                     if yes, _ := canErase(can_del...); len(yes) > 0 {
-                        Log.Debugf("I will&can kill %v(%s)", yes, watchman.HumanReadable(msg.Event))
+                        Log.Debugf("I will kill %v(%s)", yes, watchman.HumanReadable(msg.Event))
                         erase_list = append(erase_list, yes...)
                     }
                 } else {

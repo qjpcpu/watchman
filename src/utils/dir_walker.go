@@ -5,6 +5,7 @@ import (
     "path/filepath"
     "sort"
     "strings"
+    "time"
 )
 
 type Path []string
@@ -38,5 +39,23 @@ func Walk(root string, level int, exclude ...string) (list []string) {
         }
     }
     list = list[0:end]
+    return
+}
+func Find(root string, level int, size int64, before time.Time) (list []string, total int64) {
+    if _, err := os.Stat(root); os.IsNotExist(err) {
+        return
+    }
+    total = 0
+    visit := func(path string, f os.FileInfo, err error) error {
+        if level > 0 && strings.Count(path, "/")-strings.Count(root, "/") >= level && f.IsDir() {
+            return filepath.SkipDir
+        }
+        if !f.IsDir() && f.Size() > size && f.ModTime().Before(before) {
+            list = append(list, path)
+            total += f.Size()
+        }
+        return err
+    }
+    filepath.Walk(root, visit)
     return
 }

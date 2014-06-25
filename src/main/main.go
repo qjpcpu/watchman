@@ -7,7 +7,9 @@ import (
     "os"
     "os/signal"
     "smith"
+    "strings"
     "syscall"
+    "utils"
     "watchman"
 )
 
@@ -16,7 +18,7 @@ func bigWatch() {
     if err != nil {
         Log.Fatal(err)
     }
-    wlist := getWatchlist()
+    wlist := utils.GetWatchlist()
     for _, f := range wlist {
         if err = man.WatchPath(f, watchman.IN_CLOSE_WRITE|watchman.IN_CREATE|watchman.IN_DELETE|watchman.IN_DELETE_SELF|watchman.IN_MOVE|watchman.IN_MODIFY); err != nil {
             Log.Errorf("%s: %v", f, err)
@@ -33,6 +35,13 @@ func bigWatch() {
     }()
 }
 func configLogger() {
+    cfg, err := utils.MainConf()
+    if err == nil {
+        if level, err := cfg.GetString("default", "LogLevel"); err == nil && level != "" {
+            SetLevel(strings.ToUpper(level))
+            return
+        }
+    }
     SetLevel("DEBUG")
 }
 func main() {
