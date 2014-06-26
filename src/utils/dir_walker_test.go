@@ -10,3 +10,9 @@ func TestWalk(t *testing.T) {
         t.Fatal("It's not possible.")
     }
 }
+func TestCpu(t *testing.T) {
+    _, err := Cpu()
+    if err != nil {
+        t.Fatal("Get cpu usage error")
+    }
+}

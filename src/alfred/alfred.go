@@ -6,10 +6,12 @@ import (
     "fmt"
     . "mlog"
     "os"
+    "path/filepath"
     "router"
     "strings"
     "syscall"
     "time"
+    //   "utils"
 )
 
 const TimeFormat = "2006-01-02 15:04:05"
@@ -23,7 +25,7 @@ func Boot() {
     cli := router.NewRouterCli(router.SYS_ID, router.DefaultBuildClient)
     cli.Subscribe(router.SYS_ID)
     // Biding emitter
-    distributer := &Distributer{cli, make(map[string]time.Time)}
+    distributer := &Distributer{cli, make(map[string]time.Time), make(map[int]uint64)}
     pool.emitter = distributer
     // Start receive from router
     go func() {
@@ -33,16 +35,17 @@ func Boot() {
             }
         }
     }()
-    Log.Debug("Alfred Startup.")
+    Log.Info("Alfred: Startup.")
 }
 func Shutdown() {
     pool.shutdown()
-    Log.Debug("Alfred Shutdown.")
+    Log.Info("Alfred: Shutdown.")
 }
 
 type Distributer struct {
     *router.RouterCli
-    memo map[string]time.Time
+    memo     map[string]time.Time
+    freqctrl map[int]uint64
 }
 
 // The request message must like:
@@ -78,13 +81,42 @@ func (em *Distributer) PullRequest() (map[string]string, error) {
     return nil, errors.New("Shouldn't come here")
 }
 
+func (em *Distributer) ctrlDelay(t time.Time) int {
+    grade := 5
+    delay := 1
+    if em.freqctrl[t.Second()] == 0 {
+        em.freqctrl[(t.Second()-grade)%60] = 0
+    }
+    em.freqctrl[t.Second()] += 1
+    var all uint64
+    for i := 0; i < grade; i++ {
+        all += em.freqctrl[(t.Second()-i)%60]
+    }
+    switch {
+    case all > 5000:
+        delay = 30
+    case all > 3000:
+        delay = 10
+    default:
+        delay = 1
+    }
+    //use freqctrl[60] as debug tag, the if block(4 lines below) can be deleted.
+    if em.freqctrl[60] != uint64(delay) {
+        em.freqctrl[60] = uint64(delay)
+        Log.Infof("Alfred: got %v notify in last 5 seconds, adjust event eject cycle to %v seconds", all, delay)
+    }
+
+    return delay
+}
+
 func (em *Distributer) passby(env *inotify.Event, t time.Time) (can_eject bool) {
-    key := fmt.Sprintf("%s:%v", env.Name, env.Mask)
+    delay := em.ctrlDelay(t)
+    key := fmt.Sprintf("%s:%v", filepath.Dir(env.Name), env.Mask)
     if last, ok := em.memo[key]; !ok {
         em.memo[key] = t
         can_eject = true
     } else {
-        if t.Before(last.Add(time.Second)) {
+        if t.Before(last.Add(time.Duration(delay) * time.Second)) {
             can_eject = false
         } else {
             can_eject = true
