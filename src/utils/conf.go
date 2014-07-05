@@ -7,7 +7,26 @@ import (
     "io/ioutil"
     "os"
     "path/filepath"
+    "sort"
+    "strings"
 )
+
+type WatchfileCfg struct {
+    Name      string
+    Recursive bool
+    Expired   int
+}
+type WatchCfgArr []WatchfileCfg
+
+func (mp WatchCfgArr) Len() int {
+    return len(mp)
+}
+func (mp WatchCfgArr) Swap(i, j int) {
+    mp[i], mp[j] = mp[j], mp[i]
+}
+func (mp WatchCfgArr) Less(i, j int) bool {
+    return strings.Count(mp[i].Name, "/") < strings.Count(mp[j].Name, "/")
+}
 
 func ConfDir() (string, error) {
     if filename, err := osext.Executable(); err == nil {
@@ -39,10 +58,7 @@ func GetWatchlist() (list []string) {
         fwatch := dir + "/watchlist.conf"
         if _, err = os.Stat(fwatch); !os.IsNotExist(err) {
             if data, err := ioutil.ReadFile(fwatch); err == nil {
-                var t []struct {
-                    Name      string
-                    Recursive bool
-                }
+                var t WatchCfgArr
                 if err = yaml.Unmarshal([]byte(data), &t); err == nil {
                     for _, element := range t {
                         level := 1
@@ -77,4 +93,25 @@ func GetWhitelist() (list []string) {
         }
     }
     return
+}
+func GetExpiredDate(path string) int {
+    expired := 30
+    if dir, err := ConfDir(); err == nil {
+        fwatch := dir + "/watchlist.conf"
+        if _, err = os.Stat(fwatch); !os.IsNotExist(err) {
+            if data, err := ioutil.ReadFile(fwatch); err == nil {
+                var t WatchCfgArr
+                if err = yaml.Unmarshal([]byte(data), &t); err == nil {
+                    sort.Sort(t)
+                    for i := t.Len() - 1; i >= 0; i-- {
+                        if nearest := t[i]; strings.HasPrefix(path, nearest.Name) {
+                            expired = nearest.Expired
+                            break
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return expired
 }

@@ -17,15 +17,15 @@ func ScanAbnormal(queue *list.List) {
                 value := queue.Remove(ele)
                 msg := value.(router.Message)
                 if fromWhiteList(msg) {
-                    Log.Debugf("%v is on  white list,pass.", msg.FileName)
+                    Log.Infof("%v is on  white list,pass.", msg.FileName)
                 } else if fromBigFile(msg) {
-                    if yes, _ := canErase(msg.FileName); len(yes) > 0 {
-                        Log.Debugf("I will kill %s(%s)", msg.FileName, watchman.HumanReadable(msg.Event))
+                    if canEraseInstant(msg.FileName) {
                         erase_list = append(erase_list, msg.FileName)
+                    } else {
+                        Log.Warningf("Big file found and I dare not del.(%v:%v)", msg.FileName, msg.Size)
                     }
                 } else if can_del, ok := fromBigDirectory(msg); ok {
                     if yes, _ := canErase(can_del...); len(yes) > 0 {
-                        Log.Debugf("I will kill %v(%s)", yes, watchman.HumanReadable(msg.Event))
                         erase_list = append(erase_list, yes...)
                     }
                 } else {
@@ -35,6 +35,9 @@ func ScanAbnormal(queue *list.List) {
                 break
             }
         }
-        erase(erase_list...)
+        if len(erase_list) > 0 {
+            Log.Infof("Remove %v", erase_list)
+            erase(erase_list...)
+        }
     }
 }

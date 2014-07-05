@@ -2,10 +2,13 @@ package main
 
 import (
     "alfred"
+    "bitbucket.org/kardianos/osext"
     "container/list"
+    "fmt"
     . "mlog"
     "os"
     "os/signal"
+    "path/filepath"
     "smith"
     "strings"
     "syscall"
@@ -44,7 +47,17 @@ func configLogger() {
     }
     SetLevel("DEBUG")
 }
+func writePidfile() {
+    if filename, err := osext.Executable(); err == nil {
+        pid := fmt.Sprintf("%s/%s.pid", filepath.Dir(filepath.Dir(filename)), filepath.Base(filename))
+        if fi, err := os.Create(pid); err == nil {
+            fi.Write([]byte(fmt.Sprintf("%v", os.Getpid())))
+            defer fi.Close()
+        }
+    }
+}
 func main() {
+    writePidfile()
     configLogger()
     alfred.Boot()
     defer alfred.Shutdown()

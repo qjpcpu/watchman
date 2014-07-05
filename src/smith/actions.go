@@ -2,11 +2,12 @@ package smith
 
 import (
     "math"
-    . "mlog"
     "path/filepath"
     "router"
     "strconv"
+    "strings"
     "syscall"
+    //    "os"
     "time"
     "utils"
 )
@@ -36,19 +37,19 @@ func fromBigFile(clue router.Message) bool {
 
 func fromBigDirectory(clue router.Message) ([]string, bool) {
     dir := filepath.Dir(clue.FileName)
-    timelimit := time.Now().AddDate(0, 0, -30)
+    if _, err := strconv.Atoi(filepath.Base(dir)); err == nil {
+        dir = filepath.Dir(dir)
+    }
+    tl := utils.GetExpiredDate(dir)
+    timelimit := time.Now().AddDate(0, 0, -tl)
     limit := 0.001
     if cfg, err := utils.MainConf(); err == nil {
         slimit, _ := cfg.GetString("default", "TrivialFilesOccupyLimit")
         if f, err := strconv.ParseFloat(slimit, 32); err == nil {
             limit = f
         }
-        sd, _ := cfg.GetString("default", "OldFileDateLimit")
-        if d, err := strconv.Atoi(sd); err == nil {
-            timelimit = time.Now().AddDate(0, 0, -d)
-        }
     }
-    list, total := utils.Find(dir, 1, 0, timelimit)
+    list, total := utils.Find(dir, 2, 1000000, timelimit)
     fs := syscall.Statfs_t{}
     syscall.Statfs(dir, &fs)
     if percentage := float64(total) / (float64(fs.Bsize) * float64(fs.Blocks)); !math.IsInf(percentage, 1) && percentage > limit {
@@ -74,9 +75,19 @@ func canErase(files ...string) (yes, no []string) {
     yes = files
     return
 }
+func canEraseInstant(file string) bool {
+    del := false
+    if strings.HasPrefix(file, "/var/log/") {
+        del = true
+    }
+    return del
+}
 func erase(files ...string) {
     for _, f := range files {
-        Log.Info("Remove", f)
-        //os.RemoveAll(f)
+        if strings.HasPrefix(f, "/var/log/") {
+            //os.Truncate(f,0)
+        } else {
+            //os.RemoveAll(f)
+        }
     }
 }
