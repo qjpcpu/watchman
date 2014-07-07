@@ -2,10 +2,10 @@ package alfred
 
 import (
     "code.google.com/p/go.exp/inotify"
+    "container/list"
     "errors"
     . "mlog"
     "path/filepath"
-    "reflect"
     "strings"
     "time"
 )
@@ -16,11 +16,12 @@ type Emitter interface {
 
 // WatcherPool control all the watchers
 type WatcherPool struct {
-    Table   map[string]*alfredWatcher // The Table shows the paths and its according watcher
-    List    []*alfredWatcher          // The List includes all the alfredwatchers
-    Signal  chan map[string]string    // The Singal is a channel, used by communication
-    emitter Emitter
-    counter map[string]int
+    Table    map[string]*alfredWatcher // The Table shows the paths and its according watcher
+    List     []*alfredWatcher          // The List includes all the alfredwatchers
+    Signal   chan map[string]string    // The Singal is a channel, used by communication
+    emitter  Emitter
+    counter  map[string]int
+    Messages *list.List
 }
 
 // Initialize a watch pool, this is a private package function
@@ -31,6 +32,7 @@ func initPool() *WatcherPool {
         make(chan map[string]string),
         nil,
         make(map[string]int),
+        list.New(),
     }
 }
 
@@ -65,6 +67,15 @@ func (wp *WatcherPool) Attach(path string) error {
         w = newAlfredWatcher()
         wp.List = append(wp.List, w)
         Log.Debug("Create new watcher for ", path)
+        go func() {
+            for {
+                ev := <-w.watcher.Event
+                if wp.emitter != nil {
+                    wp.emitter.Eject(ev, time.Now())
+                }
+                time.Sleep(time.Millisecond * 100)
+            }
+        }()
     }
     if err := w.AddWatch(path); err != nil {
         return err
@@ -100,28 +111,9 @@ func (wp *WatcherPool) GetDefaultPaths() []string {
     return []string{}
 }
 func (wp *WatcherPool) schedule() {
-    var cases []reflect.SelectCase
-    flush := true
     for {
-        if flush {
-            cases = make([]reflect.SelectCase, len(wp.List)+1)
-            cases[0] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(wp.Signal)}
-            for i, ch := range wp.List {
-                cases[i+1] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ch.watcher.Event)}
-            }
-            flush = false
-        }
-        chosen, value, _ := reflect.Select(cases)
-        if chosen == 0 {
-            msg := value.Interface().(map[string]string)
-            wp.handleMessage(msg)
-            flush = true
-        } else {
-            ev := value.Interface().(*inotify.Event)
-            if wp.emitter != nil {
-                go wp.emitter.Eject(ev, time.Now())
-            }
-        }
+        msg := <-wp.Signal
+        wp.handleMessage(msg)
     }
 }
 func (wp *WatcherPool) handleMessage(msg map[string]string) {

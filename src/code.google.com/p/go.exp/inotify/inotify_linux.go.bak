@@ -33,7 +33,6 @@ import (
     "strings"
     "sync"
     "syscall"
-    "time"
     "unsafe"
 )
 
@@ -48,11 +47,6 @@ type watch struct {
     flags uint32 // inotify flags of this watch (see inotify(7) for the list of valid flags)
 }
 
-type filter struct {
-    memo     map[string]time.Time
-    interval time.Duration
-}
-
 type Watcher struct {
     mu       sync.Mutex
     fd       int               // File descriptor (as returned by the inotify_init() syscall)
@@ -62,23 +56,6 @@ type Watcher struct {
     Event    chan *Event       // Events are returned on this channel
     done     chan bool         // Channel for sending a "quit message" to the reader goroutine
     isClosed bool              // Set to true when Close() is first called
-    mfilter  *filter
-}
-
-func (f *filter) passby(ev *Event) bool {
-    t := time.Now()
-    key := fmt.Sprintf("%s:%v", ev.Name, ev.Mask)
-    if _, ok := f.memo[key]; !ok {
-        f.memo[key] = t
-        return true
-    } else {
-        if f.memo[key].Add(f.interval).Before(t) {
-            f.memo[key] = t
-            return true
-        } else {
-            return false
-        }
-    }
 }
 
 // NewWatcher creates and returns a new inotify instance using inotify_init(2)
@@ -87,10 +64,6 @@ func NewWatcher() (*Watcher, error) {
     if fd == -1 {
         return nil, os.NewSyscallError("inotify_init", errno)
     }
-    mf := &filter{
-        memo:     make(map[string]time.Time),
-        interval: time.Second,
-    }
     w := &Watcher{
         fd:      fd,
         watches: make(map[string]*watch),
@@ -98,7 +71,6 @@ func NewWatcher() (*Watcher, error) {
         Event:   make(chan *Event),
         Error:   make(chan error),
         done:    make(chan bool, 1),
-        mfilter: mf,
     }
 
     go w.readEvents()
@@ -234,10 +206,7 @@ func (w *Watcher) readEvents() {
                 event.Name += "/" + strings.TrimRight(string(bytes[0:nameLen]), "\000")
             }
             // Send the event on the events channel
-            if w.mfilter.passby(event) {
-                w.Event <- event
-            }
-            //w.Event <- event
+            w.Event <- event
 
             // Move to the next event in the buffer
             offset += syscall.SizeofInotifyEvent + nameLen
