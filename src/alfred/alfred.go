@@ -119,7 +119,7 @@ func (em *Distributer) ctrlDelay(t time.Time) int {
 func (em *Distributer) passby(env *inotify.Event, t time.Time) (can_eject bool) {
     delay := em.ctrlDelay(t)
     kn, km := env.Name, env.Mask
-    if km&inotify.IN_CREATE != 0 || km&inotify.IN_MOVE != 0 || km&inotify.IN_DELETE != 0 || km&inotify.IN_CLOSE != 0 {
+    if km&inotify.IN_ISDIR == 0 && (km&inotify.IN_CREATE != 0 || km&inotify.IN_MOVE != 0 || km&inotify.IN_DELETE != 0 || km&inotify.IN_CLOSE != 0) {
         kn = filepath.Dir(kn)
     }
     key := fmt.Sprintf("%s:%v", kn, km)
