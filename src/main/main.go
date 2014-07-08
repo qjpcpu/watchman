@@ -16,6 +16,10 @@ import (
     "watchman"
 )
 
+const (
+    ICARE_EVENTS = watchman.IN_ISDIR | watchman.IN_CLOSE_WRITE | watchman.IN_CREATE | watchman.IN_DELETE | watchman.IN_DELETE_SELF | watchman.IN_MOVE | watchman.IN_MODIFY
+)
+
 func bigWatch() {
     man, err := watchman.NewWatchman()
     if err != nil {
@@ -23,7 +27,7 @@ func bigWatch() {
     }
     wlist := utils.GetWatchlist()
     for _, f := range wlist {
-        if err = man.WatchPath(f, watchman.IN_CLOSE_WRITE|watchman.IN_CREATE|watchman.IN_DELETE|watchman.IN_DELETE_SELF|watchman.IN_MOVE|watchman.IN_MODIFY); err != nil {
+        if err = man.WatchPath(f, ICARE_EVENTS); err != nil {
             Log.Errorf("%s: %v", f, err)
         }
     }
@@ -32,7 +36,14 @@ func bigWatch() {
         go smith.ScanAbnormal(events)
         for {
             if m, err := man.PullEvent(); err == nil {
-                events.PushFront(m)
+                if m.Event&watchman.IN_ISDIR != 0 && m.Event&watchman.IN_CREATE != 0 {
+                    man.WatchPath(m.FileName, ICARE_EVENTS)
+                } else if m.Event&watchman.IN_ISDIR != 0 && m.Event&watchman.IN_DELETE != 0 {
+                    Log.Debugf("Stop watch:%s", m.FileName)
+                    man.ForgetPath(m.FileName)
+                } else {
+                    events.PushFront(m)
+                }
             }
         }
     }()

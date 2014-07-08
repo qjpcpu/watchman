@@ -37,7 +37,7 @@ const (
 )
 
 func HumanReadable(events uint32) string {
-    events = events & IN_ALL_EVENTS
+    events = events
     list := ""
     if events == 0x0 {
         return list

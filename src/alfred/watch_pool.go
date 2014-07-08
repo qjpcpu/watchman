@@ -92,7 +92,6 @@ func (wp *WatcherPool) Dettach(path string) error {
             err := w.RemoveWatch(path)
             if err != nil {
                 Log.Debug(err.Error())
-                return err
             }
             delete(wp.Table, path)
             delete(wp.counter, path)

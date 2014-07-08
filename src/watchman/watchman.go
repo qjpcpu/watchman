@@ -23,7 +23,7 @@ func NewWatchman() (*Watchman, error) {
 // Add a file path to watch list, specify the events as you need
 func (man *Watchman) WatchPath(path string, events uint32) error {
     if _, ok := man.paths[path]; ok {
-        man.paths[path] = events & IN_ALL_EVENTS
+        man.paths[path] = events
         return nil
     }
     if len(path) > 1 && strings.HasSuffix(path, "/") {
@@ -38,7 +38,7 @@ func (man *Watchman) WatchPath(path string, events uint32) error {
         return err
     }
     man.client.Subscribe(path)
-    man.paths[path] = events & IN_ALL_EVENTS
+    man.paths[path] = events
     return nil
 }
 
@@ -86,7 +86,7 @@ func (man *Watchman) PullEvent() (router.Message, error) {
     if m.Event == 0x0 || fn == "" || man.paths[fn]&m.Event == 0 {
         return m, errors.New("You dont' need it.")
     }
-    m.Event = m.Event & IN_ALL_EVENTS & man.paths[fn]
+    m.Event = m.Event & man.paths[fn]
     return m, nil
 }
 

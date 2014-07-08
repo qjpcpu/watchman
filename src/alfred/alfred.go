@@ -111,14 +111,18 @@ func (em *Distributer) ctrlDelay(t time.Time) int {
     //use freqctrl[60] as debug tag, the if block(4 lines below) can be deleted.
     if em.freqctrl[60] != uint64(delay) {
         em.freqctrl[60] = uint64(delay)
-        Log.Infof("Alfred: got %v notify in last 5 seconds, adjust event eject cycle to %v seconds", all, delay)
+        Log.Debugf("Alfred: got %v notify in last 5 seconds, adjust event eject cycle to %v seconds", all, delay)
     }
     return delay
 }
 
 func (em *Distributer) passby(env *inotify.Event, t time.Time) (can_eject bool) {
     delay := em.ctrlDelay(t)
-    key := fmt.Sprintf("%s:%v", filepath.Dir(env.Name), env.Mask)
+    kn, km := env.Name, env.Mask
+    if km&inotify.IN_CREATE != 0 || km&inotify.IN_MOVE != 0 || km&inotify.IN_DELETE != 0 || km&inotify.IN_CLOSE != 0 {
+        kn = filepath.Dir(kn)
+    }
+    key := fmt.Sprintf("%s:%v", kn, km)
     if last, ok := em.memo[key]; !ok {
         em.memo[key] = t
         can_eject = true

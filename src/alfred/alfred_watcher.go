@@ -32,10 +32,10 @@ func (aw *alfredWatcher) AddWatch(path string) error {
     if aw.Size() >= MAX_PATH_PER_WATCHER {
         return errors.New("Watch path full for this watcher.")
     }
-    err := aw.watcher.AddWatch(path, inotify.IN_CLOSE_WRITE|inotify.IN_CREATE|inotify.IN_DELETE|inotify.IN_MODIFY|inotify.IN_MOVE)
+    err := aw.watcher.AddWatch(path, inotify.IN_ISDIR|inotify.IN_CLOSE_WRITE|inotify.IN_CREATE|inotify.IN_DELETE|inotify.IN_MODIFY|inotify.IN_MOVE)
     //err := aw.watcher.Watch(path)
     if err == nil {
-        aw.list[path] = inotify.IN_ALL_EVENTS
+        aw.list[path] = inotify.IN_ISDIR | inotify.IN_CLOSE_WRITE | inotify.IN_CREATE | inotify.IN_DELETE | inotify.IN_MODIFY | inotify.IN_MOVE
     }
     return err
 }
