@@ -93,20 +93,20 @@ func (em *Distributer) ctrlDelay(t time.Time) int {
         all += em.freqctrl[(t.Second()-i)%60]
     }
     switch {
-    case all > 15000:
-        delay = 3600
     case all > 12000:
-        delay = 1800
+        delay = 3600
     case all > 10000:
-        delay = 600
+        delay = 1800
     case all > 7000:
-        delay = 300
+        delay = 600
     case all > 5000:
-        delay = 60
+        delay = 300
     case all > 3000:
+        delay = 60
+    case all > 1000:
         delay = 30
     default:
-        delay = 5
+        delay = 10
     }
     //use freqctrl[60] as debug tag, the if block(4 lines below) can be deleted.
     if em.freqctrl[60] != uint64(delay) {

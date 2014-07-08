@@ -2,7 +2,6 @@ package alfred
 
 import (
     "code.google.com/p/go.exp/inotify"
-    "container/list"
     "errors"
     . "mlog"
     "path/filepath"
@@ -16,12 +15,11 @@ type Emitter interface {
 
 // WatcherPool control all the watchers
 type WatcherPool struct {
-    Table    map[string]*alfredWatcher // The Table shows the paths and its according watcher
-    List     []*alfredWatcher          // The List includes all the alfredwatchers
-    Signal   chan map[string]string    // The Singal is a channel, used by communication
-    emitter  Emitter
-    counter  map[string]int
-    Messages *list.List
+    Table   map[string]*alfredWatcher // The Table shows the paths and its according watcher
+    List    []*alfredWatcher          // The List includes all the alfredwatchers
+    Signal  chan map[string]string    // The Singal is a channel, used by communication
+    emitter Emitter
+    counter map[string]int
 }
 
 // Initialize a watch pool, this is a private package function
@@ -32,7 +30,6 @@ func initPool() *WatcherPool {
         make(chan map[string]string),
         nil,
         make(map[string]int),
-        list.New(),
     }
 }
 
@@ -73,7 +70,7 @@ func (wp *WatcherPool) Attach(path string) error {
                 if wp.emitter != nil {
                     wp.emitter.Eject(ev, time.Now())
                 }
-                time.Sleep(time.Millisecond * 100)
+                //            time.Sleep(time.Millisecond * 100)
             }
         }()
     }

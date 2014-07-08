@@ -89,7 +89,7 @@ func NewWatcher() (*Watcher, error) {
     }
     mf := &filter{
         memo:     make(map[string]time.Time),
-        interval: time.Second,
+        interval: time.Minute,
     }
     w := &Watcher{
         fd:      fd,

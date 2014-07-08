@@ -2,12 +2,12 @@ package smith
 
 import (
     "math"
+    "os"
     "path/filepath"
     "router"
     "strconv"
     "strings"
     "syscall"
-    //    "os"
     "time"
     "utils"
 )
@@ -15,8 +15,6 @@ import (
 const (
     MonthLimitAgo = 3
 )
-
-var SingleFileDiskOccupyLimit float32
 
 func fromBigFile(clue router.Message) bool {
     limit := 0.001
@@ -36,9 +34,11 @@ func fromBigFile(clue router.Message) bool {
 }
 
 func fromBigDirectory(clue router.Message) ([]string, bool) {
+    level := 1
     dir := filepath.Dir(clue.FileName)
     if _, err := strconv.Atoi(filepath.Base(dir)); err == nil {
         dir = filepath.Dir(dir)
+        level = 2
     }
     tl := utils.GetExpiredDate(dir)
     timelimit := time.Now().AddDate(0, 0, -tl)
@@ -49,7 +49,7 @@ func fromBigDirectory(clue router.Message) ([]string, bool) {
             limit = f
         }
     }
-    list, total := utils.Find(dir, 2, 1000000, timelimit)
+    list, total := utils.Find(dir, level, 1000000, timelimit)
     fs := syscall.Statfs_t{}
     syscall.Statfs(dir, &fs)
     if percentage := float64(total) / (float64(fs.Bsize) * float64(fs.Blocks)); !math.IsInf(percentage, 1) && percentage > limit {
@@ -85,9 +85,9 @@ func canEraseInstant(file string) bool {
 func erase(files ...string) {
     for _, f := range files {
         if strings.HasPrefix(f, "/var/log/") {
-            //os.Truncate(f,0)
+            os.Truncate(f, 0)
         } else {
-            //os.RemoveAll(f)
+            os.RemoveAll(f)
         }
     }
 }

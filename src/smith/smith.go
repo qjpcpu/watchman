@@ -5,11 +5,16 @@ import (
     . "mlog"
     "router"
     "time"
+    "utils"
     "watchman"
 )
 
 func ScanAbnormal(queue *list.List) {
     c := time.Tick(time.Second)
+    action := "info"
+    if mcfg, err := utils.MainConf(); err == nil {
+        action, _ = mcfg.GetString("default", "action")
+    }
     for _ = range c {
         erase_list := []string{}
         for {
@@ -36,8 +41,12 @@ func ScanAbnormal(queue *list.List) {
             }
         }
         if len(erase_list) > 0 {
-            Log.Infof("Remove %v", erase_list)
-            erase(erase_list...)
+            Log.Infof("[%s] Remove %v", action, erase_list)
+            switch action {
+            case "info":
+            case "remove":
+                erase(erase_list...)
+            }
         }
     }
 }
