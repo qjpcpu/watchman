@@ -39,7 +39,6 @@ func bigWatch() {
                 if m.Event&watchman.IN_ISDIR != 0 && m.Event&watchman.IN_CREATE != 0 {
                     man.WatchPath(m.FileName, ICARE_EVENTS)
                 } else if m.Event&watchman.IN_ISDIR != 0 && m.Event&watchman.IN_DELETE != 0 {
-                    Log.Debugf("Stop watch:%s", m.FileName)
                     man.ForgetPath(m.FileName)
                 } else {
                     events.PushFront(m)
