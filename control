@@ -1,0 +1,36 @@
+#!/bin/sh
+
+start()
+{
+        nohup ./bin/watchman > watchman.log 2>&1 &
+}
+
+restart()
+{
+        stop
+        sleep 2
+        start
+}
+
+stop()
+{
+        kill -9 `cat watchman.pid`
+}
+
+case C"$1" in
+Cstart)
+        start
+        echo "watchman started!"
+        ;;
+Cstop)
+        stop
+        echo "watchman stoped!"
+        ;;
+Crestart)
+        restart
+        echo "watchman restarted!"
+        ;;
+C*)
+        echo "Usage: $0 {start|stop}"
+        ;;
+esac
