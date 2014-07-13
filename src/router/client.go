@@ -18,10 +18,8 @@ type BuildClient func() *redis.Client
 
 func DefaultBuildClient() *redis.Client {
     port := ":6379"
-    if cfg, err := utils.MainConf(); err == nil {
-        if p, err := cfg.GetString("default", "redisAddr"); err == nil {
-            port = p
-        }
+    if cfg, err := utils.GetMainConfig(); err == nil {
+        port = cfg.RedisAddr
     }
     return redis.NewTCPClient(&redis.Options{
         Addr: port,

@@ -48,10 +48,10 @@ func bigWatch() {
     }()
 }
 func configLogger() {
-    cfg, err := utils.MainConf()
+    cfg, err := utils.GetMainConfig()
     if err == nil {
-        if level, err := cfg.GetString("default", "LogLevel"); err == nil && level != "" {
-            SetLevel(strings.ToUpper(level))
+        if cfg.LogLevel != "" {
+            SetLevel(strings.ToUpper(cfg.LogLevel))
             return
         }
     }

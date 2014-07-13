@@ -5,7 +5,7 @@ import (
     "path/filepath"
     "sort"
     "strings"
-    "syscall"
+    //    "syscall"
     "time"
 )
 
@@ -51,7 +51,8 @@ func Find(root string, level int, size int64, before time.Time) (list []string, 
         if level > 0 && strings.Count(path, "/")-strings.Count(root, "/") >= level && f.IsDir() {
             return filepath.SkipDir
         }
-        if t, ok := f.Sys().(*syscall.Stat_t); !f.IsDir() && f.Size() > size && f.ModTime().Before(before) && (ok && time.Unix(t.Atim.Unix()).Before(before)) {
+        //if t, ok := f.Sys().(*syscall.Stat_t); !f.IsDir() && f.Size() > size && f.ModTime().Before(before) && (ok && time.Unix(t.Atim.Unix()).Before(before)) {
+        if !f.IsDir() && f.Size() > size && f.ModTime().Before(before) {
             list = append(list, path)
             total += f.Size()
         }

@@ -12,8 +12,8 @@ import (
 func ScanAbnormal(queue *list.List) {
     c := time.Tick(time.Second)
     action := "info"
-    if mcfg, err := utils.MainConf(); err == nil {
-        action, _ = mcfg.GetString("default", "action")
+    if mcfg, err := utils.GetMainConfig(); err == nil {
+        action = mcfg.Action
     }
     for _ = range c {
         erase_list := []string{}

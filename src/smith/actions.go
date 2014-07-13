@@ -18,11 +18,8 @@ const (
 
 func fromBigFile(clue router.Message) bool {
     limit := 0.001
-    if cfg, err := utils.MainConf(); err == nil {
-        slimit, _ := cfg.GetString("default", "SingleFileDiskOccupyLimit")
-        if f, err := strconv.ParseFloat(slimit, 32); err == nil {
-            limit = f
-        }
+    if cfg, err := utils.GetMainConfig(); err == nil {
+        limit = cfg.SingleFileDiskOccupyLimit
     }
     file := clue.FileName
     fs := syscall.Statfs_t{}
@@ -43,11 +40,8 @@ func fromBigDirectory(clue router.Message) ([]string, bool) {
     tl := utils.GetExpiredDate(dir)
     timelimit := time.Now().AddDate(0, 0, -tl)
     limit := 0.001
-    if cfg, err := utils.MainConf(); err == nil {
-        slimit, _ := cfg.GetString("default", "TrivialFilesOccupyLimit")
-        if f, err := strconv.ParseFloat(slimit, 32); err == nil {
-            limit = f
-        }
+    if cfg, err := utils.GetMainConfig(); err == nil {
+        limit = cfg.TrivialFilesOccupyLimit
     }
     list, total := utils.Find(dir, level, 1000000, timelimit)
     fs := syscall.Statfs_t{}
