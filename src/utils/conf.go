@@ -47,9 +47,9 @@ func (mp WatchConfigArr) Less(i, j int) bool {
     return strings.Count(mp[i].Name, "/") < strings.Count(mp[j].Name, "/")
 }
 
-func ConfDir() (string, error) {
+func RootDir() (string, error) {
     if filename, err := osext.Executable(); err == nil {
-        dir := filepath.Dir(filepath.Dir(filename)) + "/conf"
+        dir := filepath.Dir(filepath.Dir(filename))
         if _, err = os.Stat(dir); os.IsNotExist(err) {
             return "", err
         } else {
@@ -99,8 +99,8 @@ func GetExpiredDate(path string) int {
     return expired
 }
 func LoadConfigurations() error {
-    if dir, err := ConfDir(); err == nil {
-        fwatch := dir + "/" + ConfigFileName
+    if dir, err := RootDir(); err == nil {
+        fwatch := dir + "/conf/" + ConfigFileName
         if _, err = os.Stat(fwatch); !os.IsNotExist(err) {
             if data, err := ioutil.ReadFile(fwatch); err == nil {
                 if err = yaml.Unmarshal([]byte(data), &configurations); err == nil {

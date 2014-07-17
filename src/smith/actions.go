@@ -1,6 +1,8 @@
 package smith
 
 import (
+    "bytes"
+    "encoding/json"
     "math"
     "os"
     "path/filepath"
@@ -84,4 +86,22 @@ func erase(files ...string) {
             os.RemoveAll(f)
         }
     }
+}
+func printState(files ...string) {
+    dir, err := utils.RootDir()
+    if err != nil {
+        return
+    }
+    fi, err := os.Create(dir + "/status/watchman")
+    if err != nil {
+        return
+    }
+    defer fi.Close()
+    b, err := json.Marshal(files)
+    if err != nil {
+        return
+    }
+    var out bytes.Buffer
+    json.Indent(&out, b, "", "\t")
+    out.WriteTo(fi)
 }

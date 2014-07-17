@@ -44,6 +44,7 @@ func ScanAbnormal(queue *list.List) {
             Log.Infof("[%s] Remove %v", action, erase_list)
             switch action {
             case "info":
+                printState(erase_list...)
             case "remove":
                 erase(erase_list...)
             }
