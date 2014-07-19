@@ -5,7 +5,7 @@ import (
     "bitbucket.org/kardianos/osext"
     "container/list"
     "fmt"
-    . "mlog"
+    "github.com/qjpcpu/go-logging"
     "os"
     "os/signal"
     "path/filepath"
@@ -23,12 +23,12 @@ const (
 func bigWatch() {
     man, err := watchman.NewWatchman()
     if err != nil {
-        Log.Fatal(err)
+        logging.Fatal(err)
     }
     wlist := utils.GetWatchlist()
     for _, f := range wlist {
         if err = man.WatchPath(f, ICARE_EVENTS); err != nil {
-            Log.Errorf("%s: %v", f, err)
+            logging.Errorf("%s: %v", f, err)
         }
     }
     go func() {
@@ -50,12 +50,31 @@ func bigWatch() {
 func configLogger() {
     cfg, err := utils.GetMainConfig()
     if err == nil {
+        level := logging.INFO
         if cfg.LogLevel != "" {
-            SetLevel(strings.ToUpper(cfg.LogLevel))
-            return
+            switch strings.ToUpper(cfg.LogLevel) {
+            case "DEBUG":
+                level = logging.DEBUG
+            case "INFO":
+                level = logging.INFO
+            case "CRITICAL":
+                level = logging.CRITICAL
+            case "ERROR":
+                level = logging.ERROR
+            case "WARNING":
+                level = logging.WARNING
+            case "NOTICE":
+                level = logging.NOTICE
+            }
         }
+        if cfg.LogFile != "" {
+            logging.InitSimpleFileLogger(cfg.LogFile, level)
+        } else {
+            logging.InitLogger(level)
+        }
+        return
     }
-    SetLevel("DEBUG")
+    logging.InitLogger(logging.DEBUG)
 }
 func writePidfile() {
     if filename, err := osext.Executable(); err == nil {

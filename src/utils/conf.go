@@ -22,6 +22,7 @@ const ConfigFileName = "watchman.conf"
 // main configurations for watchman
 type MainConfig struct {
     RedisAddr                 string
+    LogFile                   string
     LogLevel                  string
     Action                    string
     SingleFileDiskOccupyLimit float64

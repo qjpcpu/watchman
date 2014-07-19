@@ -4,7 +4,7 @@ import (
     "code.google.com/p/go.exp/inotify"
     "errors"
     "fmt"
-    . "mlog"
+    "github.com/qjpcpu/go-logging"
     "os"
     "path/filepath"
     "router"
@@ -35,11 +35,11 @@ func Boot() {
             }
         }
     }()
-    Log.Info("Alfred: Startup.")
+    logging.Info("Alfred: Startup.")
 }
 func Shutdown() {
     pool.shutdown()
-    Log.Info("Alfred: Shutdown.")
+    logging.Info("Alfred: Shutdown.")
 }
 
 type Distributer struct {
@@ -57,12 +57,12 @@ type Distributer struct {
 func (em *Distributer) PullRequest() (map[string]string, error) {
     str, err := em.Read()
     if err != nil {
-        Log.Debug("Pull request:", err)
+        logging.Debug("Pull request:", err)
         return nil, err
     }
     m, err := router.ParseMessage(str)
     if err != nil {
-        Log.Debug("Pull request:", err)
+        logging.Debug("Pull request:", err)
         return nil, err
     }
     if m.Event != 0 {
@@ -111,7 +111,7 @@ func (em *Distributer) ctrlDelay(t time.Time) int {
     //use freqctrl[60] as debug tag, the if block(4 lines below) can be deleted.
     if em.freqctrl[60] != uint64(delay) {
         em.freqctrl[60] = uint64(delay)
-        Log.Debugf("Alfred: got %v notify in last 5 seconds, adjust event eject cycle to %v seconds", all, delay)
+        logging.Debugf("Alfred: got %v notify in last 5 seconds, adjust event eject cycle to %v seconds", all, delay)
     }
     return delay
 }
@@ -177,7 +177,7 @@ func buildMsg(path string, msg *router.Message) {
             msg.ChangeTime = time.Unix(t.Ctim.Unix()).Format(TimeFormat)
             msg.ModifyTime = time.Unix(t.Mtim.Unix()).Format(TimeFormat)
         } else {
-            Log.Debug("Can't get %v details by syscall", path)
+            logging.Debug("Can't get %v details by syscall", path)
         }
     }
 }

@@ -3,7 +3,7 @@ package alfred
 import (
     "code.google.com/p/go.exp/inotify"
     "errors"
-    . "mlog"
+    "github.com/qjpcpu/go-logging"
     "path/filepath"
     "strings"
     "time"
@@ -63,7 +63,7 @@ func (wp *WatcherPool) Attach(path string) error {
         }
         w = newAlfredWatcher()
         wp.List = append(wp.List, w)
-        Log.Debug("Create new watcher for ", path)
+        logging.Debug("Create new watcher for ", path)
         go func() {
             for {
                 ev := <-w.watcher.Event
@@ -80,7 +80,7 @@ func (wp *WatcherPool) Attach(path string) error {
         wp.Table[path] = w
         wp.counter[path] += 1
     }
-    Log.Debug(path + " is under watching...")
+    logging.Debug(path + " is under watching...")
     return nil
 }
 func (wp *WatcherPool) Dettach(path string) error {
@@ -91,13 +91,13 @@ func (wp *WatcherPool) Dettach(path string) error {
         if wp.counter[path] == 0 {
             err := w.RemoveWatch(path)
             if err != nil {
-                Log.Debug(err.Error())
+                logging.Debug(err.Error())
             }
             delete(wp.Table, path)
             delete(wp.counter, path)
-            Log.Debugf("Remove %v from watching list.", path)
+            logging.Debugf("Remove %v from watching list.", path)
         } else {
-            Log.Debugf("Remove a reference to %v from watching list.", path)
+            logging.Debugf("Remove a reference to %v from watching list.", path)
         }
     }
     return nil
@@ -137,7 +137,7 @@ func (wp *WatcherPool) handleMessage(msg map[string]string) {
 func (wp *WatcherPool) boot() {
     for _, fn := range wp.GetDefaultPaths() {
         if err := wp.Attach(fn); err != nil {
-            Log.Debug(err.Error())
+            logging.Debug(err.Error())
         }
     }
     go wp.schedule()

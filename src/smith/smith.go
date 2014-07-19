@@ -2,7 +2,7 @@ package smith
 
 import (
     "container/list"
-    . "mlog"
+    "github.com/qjpcpu/go-logging"
     "router"
     "time"
     "utils"
@@ -22,26 +22,26 @@ func ScanAbnormal(queue *list.List) {
                 value := queue.Remove(ele)
                 msg := value.(router.Message)
                 if fromWhiteList(msg) {
-                    Log.Infof("%v is on  white list,pass.", msg.FileName)
+                    logging.Infof("%v is on  white list,pass.", msg.FileName)
                 } else if fromBigFile(msg) {
                     if canEraseInstant(msg.FileName) {
                         erase_list = append(erase_list, msg.FileName)
                     } else {
-                        Log.Warningf("Big file found and I dare not del.(%v:%v)", msg.FileName, msg.Size)
+                        logging.Warningf("Big file found and I dare not del.(%v:%v)", msg.FileName, msg.Size)
                     }
                 } else if can_del, ok := fromBigDirectory(msg); ok {
                     if yes, _ := canErase(can_del...); len(yes) > 0 {
                         erase_list = append(erase_list, yes...)
                     }
                 } else {
-                    Log.Debugf("You're good %s(%s), let you go.", msg.FileName, watchman.HumanReadable(msg.Event))
+                    logging.Debugf("You're good %s(%s), let you go.", msg.FileName, watchman.HumanReadable(msg.Event))
                 }
             } else {
                 break
             }
         }
         if len(erase_list) > 0 {
-            Log.Infof("[%s] Remove %v", action, erase_list)
+            logging.Infof("[%s] Remove %v", action, erase_list)
             switch action {
             case "info":
                 printState(erase_list...)
