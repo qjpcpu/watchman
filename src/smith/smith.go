@@ -1,12 +1,11 @@
 package smith
 
 import (
+    "alfred"
     "container/list"
     "github.com/qjpcpu/go-logging"
-    "router"
     "time"
     "utils"
-    "watchman"
 )
 
 func ScanAbnormal(queue *list.List) {
@@ -20,7 +19,7 @@ func ScanAbnormal(queue *list.List) {
         for {
             if ele := queue.Back(); ele != nil {
                 value := queue.Remove(ele)
-                msg := value.(router.Message)
+                msg := value.(alfred.Message)
                 if fromWhiteList(msg) {
                     logging.Infof("%v is on  white list,pass.", msg.FileName)
                 } else if fromBigFile(msg) {
@@ -34,7 +33,7 @@ func ScanAbnormal(queue *list.List) {
                         erase_list = append(erase_list, yes...)
                     }
                 } else {
-                    logging.Debugf("You're good %s(%s), let you go.", msg.FileName, watchman.HumanReadable(msg.Event))
+                    logging.Debugf("You're good %s(%s), let you go.", msg.FileName, alfred.HumanReadable(msg.Event))
                 }
             } else {
                 break

@@ -1,23 +1,21 @@
-package watchman
+package alfred
 
 import (
+    "container/list"
     "errors"
     "path/filepath"
-    "router"
-    "strconv"
     "strings"
     "time"
 )
 
 type Watchman struct {
-    paths  map[string]uint32
-    client *router.RouterCli
+    paths    map[string]uint32
+    messages *list.List
 }
 
 // Initialize a new watchman
 func NewWatchman() (*Watchman, error) {
-    c := router.NewRouterCli(strconv.Itoa(time.Now().Nanosecond()), router.DefaultBuildClient)
-    return &Watchman{make(map[string]uint32), c}, nil
+    return &Watchman{paths: make(map[string]uint32), messages: list.New()}, nil
 }
 
 // Add a file path to watch list, specify the events as you need
@@ -29,15 +27,7 @@ func (man *Watchman) WatchPath(path string, events uint32) error {
     if len(path) > 1 && strings.HasSuffix(path, "/") {
         path = strings.TrimRight(path, "/")
     }
-    m := router.Message{
-        Event:    0x0,
-        FileName: "+" + path,
-    }
-    err := man.client.Write(router.SYS_ID, m.String())
-    if err != nil {
-        return err
-    }
-    man.client.Subscribe(path)
+    GetManager().Attach(man, path)
     man.paths[path] = events
     return nil
 }
@@ -50,29 +40,12 @@ func (man *Watchman) ForgetPath(path string) error {
     if len(path) > 1 && strings.HasSuffix(path, "/") {
         path = strings.TrimRight(path, "/")
     }
-    m := router.Message{
-        Event:    0x0,
-        FileName: "-" + path,
-    }
-    err := man.client.Write(router.SYS_ID, m.String())
-    if err != nil {
-        return err
-    }
-    man.client.Unsubscribe(path)
+    GetManager().Dettach(man, path)
     delete(man.paths, path)
     return nil
 }
 
-// Fetch an event of watching list, if there's no event available the function would blocked
-func (man *Watchman) PullEvent() (router.Message, error) {
-    raw, err := man.client.Read()
-    if err != nil {
-        return router.Message{}, err
-    }
-    m, err := router.ParseMessage(raw)
-    if err != nil {
-        return router.Message{}, err
-    }
+func (man *Watchman) MessageRecieved(m Message) {
     fn := ""
     for name, _ := range man.paths {
         if inWatch(m.FileName, name) {
@@ -81,13 +54,25 @@ func (man *Watchman) PullEvent() (router.Message, error) {
         }
     }
     if _, ok := man.paths[fn]; ok && m.Event == 0x0 {
-        return m, errors.New("SYSTEM")
+        return
     }
     if m.Event == 0x0 || fn == "" || man.paths[fn]&m.Event == 0 {
-        return m, errors.New("You dont' need it.")
+        return
     }
-    m.Event = m.Event & man.paths[fn]
-    return m, nil
+    man.messages.PushFront(m)
+}
+
+// Fetch an event of watching list, if there's no event available the function would blocked
+func (man *Watchman) PullEvent() (Message, error) {
+    for {
+        if ele := man.messages.Back(); ele != nil {
+            value := man.messages.Remove(ele)
+            return value.(Message), nil
+        } else {
+            time.Sleep(time.Millisecond * 100)
+        }
+    }
+    return Message{}, errors.New("shouldn't come here")
 }
 
 // Get all watching files
@@ -103,7 +88,6 @@ func (man *Watchman) CheckPathList() []string {
 
 // Stop watching and release resources
 func (man *Watchman) Release() {
-    man.client.Close()
 }
 func inWatch(event_path, fn string) bool {
     event_fn := event_path

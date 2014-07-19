@@ -1,12 +1,12 @@
 package smith
 
 import (
+    "alfred"
     "bytes"
     "encoding/json"
     "math"
     "os"
     "path/filepath"
-    "router"
     "strconv"
     "strings"
     "syscall"
@@ -18,7 +18,7 @@ const (
     MonthLimitAgo = 3
 )
 
-func fromBigFile(clue router.Message) bool {
+func fromBigFile(clue alfred.Message) bool {
     limit := 0.001
     if cfg, err := utils.GetMainConfig(); err == nil {
         limit = cfg.SingleFileDiskOccupyLimit
@@ -32,7 +32,7 @@ func fromBigFile(clue router.Message) bool {
     return false
 }
 
-func fromBigDirectory(clue router.Message) ([]string, bool) {
+func fromBigDirectory(clue alfred.Message) ([]string, bool) {
     level := 1
     dir := filepath.Dir(clue.FileName)
     if _, err := strconv.Atoi(filepath.Base(dir)); err == nil {
@@ -54,7 +54,7 @@ func fromBigDirectory(clue router.Message) ([]string, bool) {
     return []string{}, false
 }
 
-func fromWhiteList(clue router.Message) bool {
+func fromWhiteList(clue alfred.Message) bool {
     list := utils.GetWhitelist()
     if list != nil {
         for _, e := range list {
