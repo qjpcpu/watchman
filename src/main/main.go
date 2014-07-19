@@ -36,7 +36,9 @@ func bigWatch() {
         for {
             if m, err := man.PullEvent(); err == nil {
                 if m.Event&alfred.IN_ISDIR != 0 && m.Event&alfred.IN_CREATE != 0 {
-                    man.WatchPath(m.FileName, ICARE_EVENTS)
+                    if !strings.HasPrefix(filepath.Base(m.FileName), ".") {
+                        man.WatchPath(m.FileName, ICARE_EVENTS)
+                    }
                 } else if m.Event&alfred.IN_ISDIR != 0 && m.Event&alfred.IN_DELETE != 0 {
                     man.ForgetPath(m.FileName)
                 } else {
