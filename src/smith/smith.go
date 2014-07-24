@@ -15,7 +15,7 @@ func ScanAbnormal(queue *list.List) {
         action = mcfg.Action
     }
     for _ = range c {
-        erase_list := []string{}
+        erase_list := []alfred.Message{}
         for {
             if ele := queue.Back(); ele != nil {
                 value := queue.Remove(ele)
@@ -24,12 +24,16 @@ func ScanAbnormal(queue *list.List) {
                     logger.LoggerOf("watchman-logger").Infof("%v is on  white list,pass.", msg.FileName)
                 } else if fromBigFile(msg) {
                     if canEraseInstant(msg.FileName) {
-                        erase_list = append(erase_list, msg.FileName)
+                        erase_list = append(erase_list, msg)
                     } else {
                         logger.LoggerOf("watchman-logger").Warningf("Big file found and I dare not del.(%v:%v)", msg.FileName, msg.Size)
                     }
                 } else if can_del, ok := fromBigDirectory(msg); ok {
-                    if yes, _ := canErase(can_del...); len(yes) > 0 {
+                    var candel []alfred.Message
+                    for _, m := range can_del {
+                        candel = append(candel, alfred.Message{FileName: m})
+                    }
+                    if yes, _ := canErase(candel...); len(yes) > 0 {
                         erase_list = append(erase_list, yes...)
                     }
                 } else {

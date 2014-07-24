@@ -4,6 +4,7 @@ import (
     "alfred"
     "bytes"
     "encoding/json"
+    "fmt"
     "math"
     "os"
     "path/filepath"
@@ -66,8 +67,8 @@ func fromWhiteList(clue alfred.Message) bool {
     return false
 }
 
-func canErase(files ...string) (yes, no []string) {
-    no = []string{}
+func canErase(files ...alfred.Message) (yes, no []alfred.Message) {
+    no = []alfred.Message{}
     yes = files
     return
 }
@@ -78,8 +79,9 @@ func canEraseInstant(file string) bool {
     }
     return del
 }
-func erase(files ...string) {
-    for _, f := range files {
+func erase(files ...alfred.Message) {
+    for _, mf := range files {
+        f := mf.FileName
         if strings.HasPrefix(f, "/var/log/") {
             os.Truncate(f, 0)
         } else {
@@ -87,7 +89,7 @@ func erase(files ...string) {
         }
     }
 }
-func printState(files ...string) {
+func printState(files ...alfred.Message) {
     dir, err := utils.RootDir()
     if err != nil {
         return
@@ -97,7 +99,19 @@ func printState(files ...string) {
         return
     }
     defer fi.Close()
-    b, err := json.Marshal(files)
+    type Kill struct {
+        Name string
+        Size string
+    }
+    kills := []Kill{}
+    for _, f := range files {
+        k := Kill{
+            Name: f.FileName,
+            Size: fmt.Sprintf("%vM", f.Size/1048576),
+        }
+        kills = append(kills, k)
+    }
+    b, err := json.Marshal(kills)
     if err != nil {
         return
     }
