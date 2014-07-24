@@ -3,7 +3,7 @@ package alfred
 import (
     "code.google.com/p/go.exp/inotify"
     "errors"
-    "github.com/qjpcpu/go-logging"
+    "github.com/qjpcpu/logger"
     "time"
 )
 
@@ -77,7 +77,7 @@ func (wp *WatcherPool) Attach(man *Watchman, path string) error {
         }
         w = newAlfredWatcher()
         wp.List = append(wp.List, w)
-        logging.Debug("Create new watcher for ", path)
+        logger.LoggerOf("watchman-logger").Debug("Create new watcher for ", path)
         go func() {
             for {
                 ev := <-w.watcher.Event
@@ -93,7 +93,7 @@ func (wp *WatcherPool) Attach(man *Watchman, path string) error {
         wp.Table[path] = w
         wp.counter[path] += 1
     }
-    logging.Debug(path + " is under watching...")
+    logger.LoggerOf("watchman-logger").Debug(path + " is under watching...")
     return nil
 }
 func (wp *WatcherPool) Dettach(man *Watchman, path string) error {
@@ -104,13 +104,13 @@ func (wp *WatcherPool) Dettach(man *Watchman, path string) error {
         if wp.counter[path] == 0 {
             err := w.RemoveWatch(path)
             if err != nil {
-                logging.Debug(err.Error())
+                logger.LoggerOf("watchman-logger").Debug(err.Error())
             }
             delete(wp.Table, path)
             delete(wp.counter, path)
-            logging.Debugf("Remove %v from watching list.", path)
+            logger.LoggerOf("watchman-logger").Debugf("Remove %v from watching list.", path)
         } else {
-            logging.Debugf("Remove a reference to %v from watching list.", path)
+            logger.LoggerOf("watchman-logger").Debugf("Remove a reference to %v from watching list.", path)
         }
     }
     return nil

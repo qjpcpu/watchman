@@ -3,7 +3,7 @@ package smith
 import (
     "alfred"
     "container/list"
-    "github.com/qjpcpu/go-logging"
+    "github.com/qjpcpu/logger"
     "time"
     "utils"
 )
@@ -21,26 +21,26 @@ func ScanAbnormal(queue *list.List) {
                 value := queue.Remove(ele)
                 msg := value.(alfred.Message)
                 if fromWhiteList(msg) {
-                    logging.Infof("%v is on  white list,pass.", msg.FileName)
+                    logger.LoggerOf("watchman-logger").Infof("%v is on  white list,pass.", msg.FileName)
                 } else if fromBigFile(msg) {
                     if canEraseInstant(msg.FileName) {
                         erase_list = append(erase_list, msg.FileName)
                     } else {
-                        logging.Warningf("Big file found and I dare not del.(%v:%v)", msg.FileName, msg.Size)
+                        logger.LoggerOf("watchman-logger").Warningf("Big file found and I dare not del.(%v:%v)", msg.FileName, msg.Size)
                     }
                 } else if can_del, ok := fromBigDirectory(msg); ok {
                     if yes, _ := canErase(can_del...); len(yes) > 0 {
                         erase_list = append(erase_list, yes...)
                     }
                 } else {
-                    logging.Debugf("You're good %s(%s), let you go.", msg.FileName, alfred.HumanReadable(msg.Event))
+                    logger.LoggerOf("watchman-logger").Debugf("You're good %s(%s), let you go.", msg.FileName, alfred.HumanReadable(msg.Event))
                 }
             } else {
                 break
             }
         }
         if len(erase_list) > 0 {
-            logging.Infof("[%s] Remove %v", action, erase_list)
+            logger.LoggerOf("watchman-logger").Infof("[%s] Remove %v", action, erase_list)
             switch action {
             case "info":
                 printState(erase_list...)

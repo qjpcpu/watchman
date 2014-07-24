@@ -3,7 +3,7 @@ package alfred
 import (
     "code.google.com/p/go.exp/inotify"
     "fmt"
-    "github.com/qjpcpu/go-logging"
+    "github.com/qjpcpu/logger"
     "os"
     "path/filepath"
     "syscall"
@@ -17,11 +17,11 @@ func Boot() {
     distributer := &Distributer{make(map[string]time.Time), make(map[int]uint64)}
     mgr := GetManager()
     mgr.emitter = distributer
-    logging.Info("Alfred: Startup.")
+    logger.LoggerOf("watchman-logger").Info("Alfred: Startup.")
 }
 func Shutdown() {
     GetManager().shutdown()
-    logging.Info("Alfred: Shutdown.")
+    logger.LoggerOf("watchman-logger").Info("Alfred: Shutdown.")
 }
 
 type Distributer struct {
@@ -59,7 +59,7 @@ func (em *Distributer) ctrlDelay(t time.Time) int {
     //use freqctrl[60] as debug tag, the if block(4 lines below) can be deleted.
     if em.freqctrl[60] != uint64(delay) {
         em.freqctrl[60] = uint64(delay)
-        logging.Debugf("Alfred: got %v notify in last 5 seconds, adjust event eject cycle to %v seconds", all, delay)
+        logger.LoggerOf("watchman-logger").Debugf("Alfred: got %v notify in last 5 seconds, adjust event eject cycle to %v seconds", all, delay)
     }
     return delay
 }
@@ -124,7 +124,7 @@ func buildMsg(path string, msg *Message) {
             msg.ChangeTime = time.Unix(t.Ctim.Unix()).Format(TimeFormat)
             msg.ModifyTime = time.Unix(t.Mtim.Unix()).Format(TimeFormat)
         } else {
-            logging.Debug("Can't get %v details by syscall", path)
+            logger.LoggerOf("watchman-logger").Debug("Can't get %v details by syscall", path)
         }
     }
 }
