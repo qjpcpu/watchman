@@ -107,7 +107,7 @@ func printState(files ...alfred.Message) {
     for _, f := range files {
         k := Kill{
             Name: f.FileName,
-            Size: fmt.Sprintf("%vM", f.Size/1048576),
+            Size: fmt.Sprintf("%vM", f.Size/(1024*1024)),
         }
         kills = append(kills, k)
     }
