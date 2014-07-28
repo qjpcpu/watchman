@@ -108,8 +108,8 @@ func (em *Distributer) Eject(env *inotify.Event, t time.Time) {
         }
         buildMsg(env.Name, &m)
     }
-    for _, man := range GetManager().watchmen {
-        if em.passby(env, t) {
+    if em.passby(env, t) {
+        for _, man := range GetManager().watchmen {
             go man.MessageRecieved(m)
         }
     }
