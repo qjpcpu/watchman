@@ -94,7 +94,7 @@ func printState(files ...alfred.Message) {
     if err != nil {
         return
     }
-    fi, err := os.Create(dir + "/status/watchman")
+    fi, err := os.Create(dir + "/status/watchman.json")
     if err != nil {
         return
     }
