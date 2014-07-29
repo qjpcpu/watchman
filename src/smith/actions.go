@@ -111,7 +111,12 @@ func printState(files ...alfred.Message) {
         }
         kills = append(kills, k)
     }
-    b, err := json.Marshal(kills)
+    y := struct {
+        K []Kill `json:"watchman"`
+    }{
+        K: kills,
+    }
+    b, err := json.Marshal(y)
     if err != nil {
         return
     }
